@@ -1,0 +1,334 @@
+body {
+  font-family: Roboto, sans-serif;
+  font-stretch: normal;
+  font-style: normal;
+  font-weight: 400;
+  display: grid;
+  /* 100% of the viewport height */
+  height: 100vh;
+  color: #757575;
+  background-color: #f0f0f0;
+    /* ReSharper disable once CssNotResolved */
+  grid-gap: 1em; 
+}
+
+a {
+  color: #2196f3;
+  text-decoration: none;
+}
+a:visited {
+  color: #2196f3;
+}
+
+/* Grid layout Copyright (c) 2016 Alligator.io */
+/* Licensed MIT https://oss.ninja/mit?organization=Alligator.io */
+    
+@media (max-width: 768px) {
+  body {
+    grid-template-areas:
+      "header"
+      "nav"
+      "content"
+      "side"
+      "footer";
+
+    grid-template-columns: 1fr;
+    grid-template-rows:
+      auto /* Header */
+/* ReSharper disable once InvalidValue */
+      minmax(75px, auto) /* Nav */
+      1fr /* Content */
+/* ReSharper disable once InvalidValue */
+      minmax(75px, auto) /* Sidebar */
+      auto; /* Footer */
+  }
+
+  body > nav {
+    margin-right: 0.5em;
+    margin-left: 0.5em;
+  }  
+  body > aside {
+    margin-right: .5em;
+    margin-left: 0.5em;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  body {
+    grid-template-areas:
+      "header header"
+      "nav content"
+      "side side"
+      "footer footer";
+
+    grid-template-columns: 200px 1fr;
+    grid-template-rows:
+      auto /* Header */
+      1fr /* Nav, Content */
+/* ReSharper disable once InvalidValue */
+      minmax(75px, auto) /* Sidebar */
+      auto; /* Footer */
+  }
+
+  body > main {
+    margin-right: .5em;
+  }
+  body > nav {
+    margin-left: 0.5rem;
+  }
+  body > aside {
+    margin-right: 0.5em;
+    margin-left: 0.5em;
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    background: url(https://4.bp.blogspot.com/-FPRZAEK7xlU/XPBNUXKAq6I/AAAAAAAAAok/cSAharFRKhc0cCTHfx1qWBnxpRHI15mQACK4BGAYYCw/s0/_DSC6880_crop.jpg) repeat scroll top left;
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center; 
+    background-repeat: no-repeat;
+    grid-template-areas:
+      "header header header"
+      "nav content side"
+      "footer footer footer";
+
+    grid-template-columns: 200px 1fr 200px;
+    grid-template-rows: auto 1fr auto;
+  }
+  body > nav {
+    margin-left: 0.5rem;
+  }
+  body > aside {
+    margin-right: 0.5rem;
+  }
+}
+
+body > header {
+  grid-area: header;
+  text-align: center;
+  background: #2b6075;
+  color: #ffffff;
+}
+
+body > header > h2 {
+  font-size: 2rem;
+  margin: 0.67em 0;
+}
+
+body > nav {
+  grid-area: nav;
+  border: thick double #32a1ce;  
+}
+
+body > main {
+  min-width: 320px;
+  grid-area: content;
+}
+
+body > aside {
+  grid-area: side;
+  border: thick double #32a1ce;
+}
+
+body > footer {
+  grid-area: footer;
+  text-align: center;
+  background: #78d2ff;
+  /*background: #608f90;*/
+  color: #ffffff;
+}
+
+body > footer a {
+  color: #ffffff;  
+}
+body > footer a:visited {
+  color: #ffffff;  
+}
+
+/* Fill the vertical space */
+body main article {
+  height: calc(100% - 2em);
+}
+
+main article {
+  background-color: rgb(255, 255, 255);
+  padding: 1em;
+}
+
+main article.inner-article > * {
+  margin-left: 1em;
+}
+main article.inner-article > header:first-child {
+  margin-left: 0;
+}
+
+pre {
+  line-height: initial;
+}
+
+main ul {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+
+main ol {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+
+main p {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+
+main section > * {
+  margin-left: 1em;
+}
+
+main section > header:first-child {
+  margin-left: 0;
+}
+
+main section {
+  margin-bottom: 0.5em;
+  margin-top: 0.5em;
+}
+
+main section.big-section {
+  margin-bottom: 1em;
+  margin-top: 1em;
+}
+
+main header > * {
+  margin-top: .25em;
+  margin-left: 1em;
+}
+
+main header > h1,
+main header > h2,
+main header > h3,
+main header > h4,
+main header > h5,
+main header > h6 {
+  margin-left: 0;
+  margin-bottom: 0;
+}
+
+main header > h1:first-child,
+main header > h2:first-child,
+main header > h3:first-child,
+main header > h4:first-child,
+main header > h5:first-child,
+main header > h6:first-child {
+  display: inline-block;
+}
+
+main header > a.bookmark {
+  margin-left: 0;
+  padding-left: .5em;
+}
+
+a.bookmark::after {
+    content: url("data:image/svg+xml; utf8, <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path d='M326.612 185.391c59.747 59.809 58.927 155.698.36 214.59-.11.12-.24.25-.36.37l-67.2 67.2c-59.27 59.27-155.699 59.262-214.96 0-59.27-59.26-59.27-155.7 0-214.96l37.106-37.106c9.84-9.84 26.786-3.3 27.294 10.606.648 17.722 3.826 35.527 9.69 52.721 1.986 5.822.567 12.262-3.783 16.612l-13.087 13.087c-28.026 28.026-28.905 73.66-1.155 101.96 28.024 28.579 74.086 28.749 102.325.51l67.2-67.19c28.191-28.191 28.073-73.757 0-101.83-3.701-3.694-7.429-6.564-10.341-8.569a16.037 16.037 0 0 1-6.947-12.606c-.396-10.567 3.348-21.456 11.698-29.806l21.054-21.055c5.521-5.521 14.182-6.199 20.584-1.731a152.482 152.482 0 0 1 20.522 17.197zM467.547 44.449c-59.261-59.262-155.69-59.27-214.96 0l-67.2 67.2c-.12.12-.25.25-.36.37-58.566 58.892-59.387 154.781.36 214.59a152.454 152.454 0 0 0 20.521 17.196c6.402 4.468 15.064 3.789 20.584-1.731l21.054-21.055c8.35-8.35 12.094-19.239 11.698-29.806a16.037 16.037 0 0 0-6.947-12.606c-2.912-2.005-6.64-4.875-10.341-8.569-28.073-28.073-28.191-73.639 0-101.83l67.2-67.19c28.239-28.239 74.3-28.069 102.325.51 27.75 28.3 26.872 73.934-1.155 101.96l-13.087 13.087c-4.35 4.35-5.769 10.79-3.783 16.612 5.864 17.194 9.042 34.999 9.69 52.721.509 13.906 17.454 20.446 27.294 10.606l37.106-37.106c59.271-59.259 59.271-155.699.001-214.959z'/></svg>");
+    width: 1em;
+    display: inline-block;
+}
+
+main header cite {
+  float:right;
+}
+
+cite:before {
+  content: '(';
+}
+cite:after {
+  content: ')';
+}
+
+abbr[title]{
+  text-decoration: none;
+}
+
+code.language-csharp {
+  font-family: consolas, monaco, monospace;
+  color: #000000;
+  white-space: pre;
+}
+span.csharp-blue {
+  color: #0000ff;
+}
+span.csharp-teal {
+  color: #2b91af;
+}
+span.csharp-brown {
+  color: #a31515;
+}
+span.csharp-red {
+  color: #ff0000;
+}
+span.csharp-green {
+  color: #008000;
+}
+
+code.language-xml {
+  font-family: consolas, monaco, monospace;
+  color: #000000;
+}
+
+code.language-powershell {
+  font-family: consolas, monaco, monospace;
+  color: #000000;
+}
+code.language-powershell .attribute {
+  color: #00bfff;
+}
+code.language-powershell .command {
+  color: #0000ff;
+}
+code.language-powershell .command-argument {
+  color: #8a2be2;
+}
+code.language-powershell .command-parameter {
+  color: #000080;
+}
+code.language-powershell .comment {
+  color: #006400;
+}
+code.language-powershell .group-end {
+  color: #000000;
+}
+code.language-powershell .group-start {
+  color: #000000;
+}
+code.language-powershell .keyword {
+  color: #00008b;
+}
+code.language-powershell .line-continuation {
+  color: #000000;
+}
+code.language-powershell .loop-label {
+  color: #00008b;
+}
+code.language-powershell .member {
+  color: #000000;
+}
+code.language-powershell .number {
+  color: #800080;
+}
+code.language-powershell .operator {
+  color: #696969;
+}
+code.language-powershell .statement-separator {
+  color: #000000;
+}
+code.language-powershell .string {
+  color: #8b0000;
+}
+code.language-powershell .type {
+  color: #006161;
+}
+code.language-powershell .variable {
+  color: #a82d00;
+}

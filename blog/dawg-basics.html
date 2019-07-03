@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Directed Acyclic Word Graphs - Part 1 - The Basics</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="Overview of DAWG data structures and an algorithm to create them."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://jbp.dev/blog/dawg-basics.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+	<style>
+.word-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding-left: 0;
+}
+.word-list li {
+  margin-left: 2em;
+  margin-right: 2em;
+}
+.slide-show {
+  max-width: 720px;
+  width: calc(100% - 2em);
+  margin-top: 1em;
+  margin-bottom: 1em;
+  position: relative;
+  background: #dceff4;
+  border-radius: 1em;
+}
+@media only screen and (max-width: 450px) {
+  .slide-show {
+    --prev-next-size: 1em;
+  }
+}
+@media only screen and (max-width: 850px) and (min-width: 450px) {
+  .slide-show {
+    --prev-next-size: 2em;
+  }
+}
+@media only screen and (min-width: 850px) {
+  .slide-show {
+    --prev-next-size: 3em;
+  }
+}
+.slide-show input {
+  display: none;
+}
+.slide-show .slide-wrapper {
+  overflow: hidden;
+}
+.slide-wrapper .slides {
+  padding: 0;
+  margin: 0;
+  width: 1400%;
+}
+.slide-wrapper li {
+  display: block;
+  width: 7.1428571429%;
+  float: left;
+  position: relative;
+}
+.slide-wrapper li figure {
+  margin: 0;
+}
+.slide-wrapper li svg {
+  background: #aceff4;
+  border-top-left-radius: 1em;
+  border-top-right-radius: 1em;
+}
+.slide-wrapper li figcaption {
+  margin-left: calc(var(--prev-next-size) + 1em);
+  margin-right: calc(var(--prev-next-size) + 1em);
+}
+.slider-prev-next-control {
+  position: absolute;
+  top: .5em;
+  width: 100%;
+}
+.slider-prev-next-control label {
+  display: none;
+  width: var(--prev-next-size);
+  height: var(--prev-next-size);
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.8;
+}
+.slider-prev-next-control label:hover {
+  opacity: 1;
+}
+.slider-dot-control {
+  text-align: center;
+}
+.slider-dot-control label {
+  cursor: pointer;
+  border-radius: .25em;
+  display: inline-block;
+  width: .5em;
+  height: .5em;
+  background: #bbb;
+}
+.slider-dot-control label:hover {
+  background: #ccc;
+  border-color: #777;
+}
+#slide1:checked ~ .slider-prev-next-control label:nth-child(2)::after, #slide2:checked ~ .slider-prev-next-control label:nth-child(3)::after, #slide3:checked ~ .slider-prev-next-control label:nth-child(4)::after, #slide4:checked ~ .slider-prev-next-control label:nth-child(5)::after, #slide5:checked ~ .slider-prev-next-control label:nth-child(6)::after, #slide6:checked ~ .slider-prev-next-control label:nth-child(7)::after, #slide7:checked ~ .slider-prev-next-control label:nth-child(8)::after, #slide8:checked ~ .slider-prev-next-control label:nth-child(9)::after, #slide9:checked ~ .slider-prev-next-control label:nth-child(10)::after, #slide10:checked ~ .slider-prev-next-control label:nth-child(11)::after, #slide11:checked ~ .slider-prev-next-control label:nth-child(12)::after, #slide12:checked ~ .slider-prev-next-control label:nth-child(13)::after, #slide13:checked ~ .slider-prev-next-control label:nth-child(14)::after, #slide14:checked ~ .slider-prev-next-control label:nth-child(1)::after, #slide2:checked ~ .slider-prev-next-control label:nth-child(1)::after, #slide3:checked ~ .slider-prev-next-control label:nth-child(2)::after, #slide4:checked ~ .slider-prev-next-control label:nth-child(3)::after, #slide5:checked ~ .slider-prev-next-control label:nth-child(4)::after, #slide6:checked ~ .slider-prev-next-control label:nth-child(5)::after, #slide7:checked ~ .slider-prev-next-control label:nth-child(6)::after, #slide8:checked ~ .slider-prev-next-control label:nth-child(7)::after, #slide9:checked ~ .slider-prev-next-control label:nth-child(8)::after, #slide10:checked ~ .slider-prev-next-control label:nth-child(9)::after, #slide11:checked ~ .slider-prev-next-control label:nth-child(10)::after, #slide12:checked ~ .slider-prev-next-control label:nth-child(11)::after, #slide13:checked ~ .slider-prev-next-control label:nth-child(12)::after, #slide14:checked ~ .slider-prev-next-control label:nth-child(13)::after, #slide1:checked ~ .slider-prev-next-control label:nth-child(14)::after {
+  font-family: FontAwesome;
+  font-style: normal;
+  font-weight: normal;
+  text-decoration: inherit;
+  font-size: var(--prev-next-size);
+  display: block;
+  color: #777;
+}
+#slide1:checked ~ .slider-prev-next-control label:nth-child(2)::after, #slide2:checked ~ .slider-prev-next-control label:nth-child(3)::after, #slide3:checked ~ .slider-prev-next-control label:nth-child(4)::after, #slide4:checked ~ .slider-prev-next-control label:nth-child(5)::after, #slide5:checked ~ .slider-prev-next-control label:nth-child(6)::after, #slide6:checked ~ .slider-prev-next-control label:nth-child(7)::after, #slide7:checked ~ .slider-prev-next-control label:nth-child(8)::after, #slide8:checked ~ .slider-prev-next-control label:nth-child(9)::after, #slide9:checked ~ .slider-prev-next-control label:nth-child(10)::after, #slide10:checked ~ .slider-prev-next-control label:nth-child(11)::after, #slide11:checked ~ .slider-prev-next-control label:nth-child(12)::after, #slide12:checked ~ .slider-prev-next-control label:nth-child(13)::after, #slide13:checked ~ .slider-prev-next-control label:nth-child(14)::after, #slide14:checked ~ .slider-prev-next-control label:nth-child(1)::after {
+ content: url("data:image/svg+xml; utf8, <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 512'><path d='M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z'/></svg>");
+ width: .5em;
+  float: right;
+  padding-right: .25em;
+}
+#slide1:checked ~ .slider-prev-next-control label:nth-child(2), #slide2:checked ~ .slider-prev-next-control label:nth-child(3), #slide3:checked ~ .slider-prev-next-control label:nth-child(4), #slide4:checked ~ .slider-prev-next-control label:nth-child(5), #slide5:checked ~ .slider-prev-next-control label:nth-child(6), #slide6:checked ~ .slider-prev-next-control label:nth-child(7), #slide7:checked ~ .slider-prev-next-control label:nth-child(8), #slide8:checked ~ .slider-prev-next-control label:nth-child(9), #slide9:checked ~ .slider-prev-next-control label:nth-child(10), #slide10:checked ~ .slider-prev-next-control label:nth-child(11), #slide11:checked ~ .slider-prev-next-control label:nth-child(12), #slide12:checked ~ .slider-prev-next-control label:nth-child(13), #slide13:checked ~ .slider-prev-next-control label:nth-child(14), #slide14:checked ~ .slider-prev-next-control label:nth-child(1) {
+  display: block;
+  float: right;
+  margin-right: .5em;
+}
+#slide2:checked ~ .slider-prev-next-control label:nth-child(1), #slide3:checked ~ .slider-prev-next-control label:nth-child(2), #slide4:checked ~ .slider-prev-next-control label:nth-child(3), #slide5:checked ~ .slider-prev-next-control label:nth-child(4), #slide6:checked ~ .slider-prev-next-control label:nth-child(5), #slide7:checked ~ .slider-prev-next-control label:nth-child(6), #slide8:checked ~ .slider-prev-next-control label:nth-child(7), #slide9:checked ~ .slider-prev-next-control label:nth-child(8), #slide10:checked ~ .slider-prev-next-control label:nth-child(9), #slide11:checked ~ .slider-prev-next-control label:nth-child(10), #slide12:checked ~ .slider-prev-next-control label:nth-child(11), #slide13:checked ~ .slider-prev-next-control label:nth-child(12), #slide14:checked ~ .slider-prev-next-control label:nth-child(13), #slide1:checked ~ .slider-prev-next-control label:nth-child(14) {
+  display: block;
+  float: left;
+  margin-left: .5em;
+}
+#slide2:checked ~ .slider-prev-next-control label:nth-child(1)::after, #slide3:checked ~ .slider-prev-next-control label:nth-child(2)::after, #slide4:checked ~ .slider-prev-next-control label:nth-child(3)::after, #slide5:checked ~ .slider-prev-next-control label:nth-child(4)::after, #slide6:checked ~ .slider-prev-next-control label:nth-child(5)::after, #slide7:checked ~ .slider-prev-next-control label:nth-child(6)::after, #slide8:checked ~ .slider-prev-next-control label:nth-child(7)::after, #slide9:checked ~ .slider-prev-next-control label:nth-child(8)::after, #slide10:checked ~ .slider-prev-next-control label:nth-child(9)::after, #slide11:checked ~ .slider-prev-next-control label:nth-child(10)::after, #slide12:checked ~ .slider-prev-next-control label:nth-child(11)::after, #slide13:checked ~ .slider-prev-next-control label:nth-child(12)::after, #slide14:checked ~ .slider-prev-next-control label:nth-child(13)::after, #slide1:checked ~ .slider-prev-next-control label:nth-child(14)::after {
+  width: .5em;
+  content: url("data:image/svg+xml; utf8, <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 512'><path d='M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z'/></svg>");
+  padding-left: .25em;
+}
+#slide1:checked ~ .slider-dot-control label:nth-child(1), #slide2:checked ~ .slider-dot-control label:nth-child(2), #slide3:checked ~ .slider-dot-control label:nth-child(3), #slide4:checked ~ .slider-dot-control label:nth-child(4), #slide5:checked ~ .slider-dot-control label:nth-child(5), #slide6:checked ~ .slider-dot-control label:nth-child(6), #slide7:checked ~ .slider-dot-control label:nth-child(7), #slide8:checked ~ .slider-dot-control label:nth-child(8), #slide9:checked ~ .slider-dot-control label:nth-child(9), #slide10:checked ~ .slider-dot-control label:nth-child(10), #slide11:checked ~ .slider-dot-control label:nth-child(11), #slide12:checked ~ .slider-dot-control label:nth-child(12), #slide13:checked ~ .slider-dot-control label:nth-child(13), #slide14:checked ~ .slider-dot-control label:nth-child(14) {
+  background: #333;
+}
+#slide1:checked ~ .slide-wrapper figure:nth-child(1) .info, #slide2:checked ~ .slide-wrapper figure:nth-child(2) .info, #slide3:checked ~ .slide-wrapper figure:nth-child(3) .info, #slide4:checked ~ .slide-wrapper figure:nth-child(4) .info, #slide5:checked ~ .slide-wrapper figure:nth-child(5) .info, #slide6:checked ~ .slide-wrapper figure:nth-child(6) .info, #slide7:checked ~ .slide-wrapper figure:nth-child(7) .info, #slide8:checked ~ .slide-wrapper figure:nth-child(8) .info, #slide9:checked ~ .slide-wrapper figure:nth-child(9) .info, #slide10:checked ~ .slide-wrapper figure:nth-child(10) .info, #slide11:checked ~ .slide-wrapper figure:nth-child(11) .info, #slide12:checked ~ .slide-wrapper figure:nth-child(12) .info, #slide13:checked ~ .slide-wrapper figure:nth-child(13) .info, #slide14:checked ~ .slide-wrapper figure:nth-child(14) .info {
+  opacity: 1;
+}
+#slide1:checked ~ .slide-wrapper .slides {
+  margin-left: 0;
+}
+#slide2:checked ~ .slide-wrapper .slides {
+  margin-left: -100%;
+}
+#slide3:checked ~ .slide-wrapper .slides {
+  margin-left: -200%;
+}
+#slide4:checked ~ .slide-wrapper .slides {
+  margin-left: -300%;
+}
+#slide5:checked ~ .slide-wrapper .slides {
+  margin-left: -400%;
+}
+#slide6:checked ~ .slide-wrapper .slides {
+  margin-left: -500%;
+}
+#slide7:checked ~ .slide-wrapper .slides {
+  margin-left: -600%;
+}
+#slide8:checked ~ .slide-wrapper .slides {
+  margin-left: -700%;
+}
+#slide9:checked ~ .slide-wrapper .slides {
+  margin-left: -800%;
+}
+#slide10:checked ~ .slide-wrapper .slides {
+  margin-left: -900%;
+}
+#slide11:checked ~ .slide-wrapper .slides {
+  margin-left: -1000%;
+}
+#slide12:checked ~ .slide-wrapper .slides {
+  margin-left: -1100%;
+}
+#slide13:checked ~ .slide-wrapper .slides {
+  margin-left: -1200%;
+}
+#slide14:checked ~ .slide-wrapper .slides {
+  margin-left: -1300%;
+}
+	</style>
+</head>
+
+<body>
+<header>
+  <h2>
+      <!-- ReSharper disable once MarkupTextTypo -->
+      JB's BLOG
+  </h2>
+</header>
+
+<nav>
+  
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>Directed Acyclic Word Graphs</h1>
+    <h2>Part 1 - The Basics</h2>
+    <p>
+      I'd like to share some code I had a lot of fun writing. 
+      To get there, I'm going to describe some algorithms and data structures. 
+      Without this background, the code won't make much sense.
+    </p>
+  </header>
+
+  <section>
+    <header>
+      <h3>The English language</h3>
+      <a class="bookmark" href="#the-english-language" id="the-english-language" rel="bookmark"></a>
+    </header>
+    <p>
+      There are a lot of words in the English language. 
+      A lot. 
+      The Second edition of the Oxford English Dictionary contains <a href="https://en.oxforddictionaries.com/explore/how-many-words-are-there-in-the-english-language">171,476 words in current use</a>. 
+      Other corpora have wildly different counts 
+        (<a href="http://www-personal.umich.edu/~jlawler/wordlist.html">69K</a>, 
+        <a href="https://github.com/dwyl/english-words">466K</a>, 
+        <a href="https://github.com/wolfgarbe/SymSpell">83K</a>), 
+        but any way you look at it, you're going to be storing a lot of strings in memory.
+    </p>
+  </section>
+
+  <section>
+    <header>
+      <h3>The size of your dictionary</h3>
+      <a class="bookmark" href="#dictionary-sizes" id="dictionary-sizes" rel="bookmark"></a>
+    </header>
+    <p>
+      The last of those lists includes frequency information in a 1,283 KB file, with each line storing a word/count pair. 
+      1 MB doesn't sound like much, but what about when you want to use and access that information in your application?
+    </p>
+    <p>
+      There are many different ways of storing lists of strings. 
+      They all share the same iteration time O(n) on the size of the dictionary.
+      Where they do differ is in the size of their representation and the time taken to determine if a string belongs to the language.
+    </p>
+    <ol>
+      <li>
+        The most obvious way is a <b>list</b>. If sorted, you can search in O(n) with n being the number of words.
+      </li>
+      <li>
+        We could use a <b>hashset</b>. O(m) lookup where m is the size of the word. Hashing isn't free after all.
+      </li>
+      <li>
+        We might consider splitting up strings into base + suffix. Think of “run”. 
+        It’s a word on its own but it extends to “runs”, “running”, “runner”, “runners”, etc. 
+        If those endings are shared with any other words, they could share a suffix list. 
+        This is a <a href="https://en.wikipedia.org/wiki/Suffix_tree"><b>suffix tree</b></a> and it can save a substantial amount of storage space. 
+        A <b>suffix tree</b> provides O(m) lookup on the size of the word.
+      </li>
+      <li>
+        If we start at the beginning of the word instead of the end, we end up with a <a href="https://en.wikipedia.org/wiki/Trie"><b>trie</b></a>. Lookup time is again O(m)
+      </li>
+      <li>
+        By combining the suffix shrinking of a <b>suffix tree</b> with the prefix graph of a <b>trie</b>, you can create a 
+		<a href="https://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton"><b>Directed Acyclic Word Graph</b></a>. 
+		It is an instance of a Finite State Automata and is sometimes referred to as such.
+        This data structure is optimized to contain the smallest amount of edges and nodes, which will be less than a <b>trie</b> or <b>suffix tree</b> on their own could achieve. 
+        As with the other graph based methods, lookup is O(m)
+      </li>
+    </ol>
+    <p>
+      Before we continue, I'll point out that with a <b>suffix tree</b> or a <abbr title="Directed Acyclic Word Graph"><b>DAWG</b></abbr>, additional state is required if you want to uniquely map a string to another value. 
+      Without this extra information, there are many possible ways to reach a single end-point in the graph and no way to distinguish them.       
+      One method to do this with a <b>DAWG</b> is described in <cite>
+    <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf">Applications of Finite Automata Representing Large Vocabularies</a> by
+    <!-- ReSharper disable once MarkupTextTypo -->
+    Luccesi and
+    <!-- ReSharper disable once MarkupTextTypo -->
+    Kowaltowski
+</cite>.
+      For now we'll skip over it, but it will come up in the next article.
+    </p>
+  </section>
+
+  <section>
+    <header>
+      <h3>Constructing a <abbr title="Directed Acyclic Word Graph">DAWG</abbr></h3>
+      <a class="bookmark" href="#constructing-dawg" id="constructing-dawg" rel="bookmark"></a>
+    </header>
+    <p>
+        To build our <abbr title="Directed Acyclic Word Graph"><b>DAWG</b></abbr>, we're going to use an algorithm described in 
+        <cite>
+            <a href="https://www.aclweb.org/anthology/J00-1002">Incremental Construction of Minimal Acyclic Finite-State Automata</a> by
+            <!-- ReSharper disable once MarkupTextTypo -->
+            Daciuk,
+            <!-- ReSharper disable once MarkupTextTypo -->
+            Mihov, Watson, and Watson
+        </cite>.
+        For this we need as input a sorted list of words. 
+        We will construct a graph by adding one word at a time. 
+        The letters of the word will be represented by edges, while nodes will represent possible branching points. 
+        A node can also be denoted as terminal, which represents that you could end there and have a valid word. 
+        What we're building is essentially a minimized <b>trie</b>. 
+        For another explanation see 
+        <cite>
+            <a href="http://stevehanov.ca/blog/?id=115">Compressing dictionaries with a DAWG</a> by Steve
+            <!-- ReSharper disable once MarkupTextTypo -->
+            Hanov
+        </cite>.
+    </p>
+    <p>
+    The algorithm consists of two parts, insertion and minimization. 
+    As we loop over the collection of words, we keep track of our position on the graph, as well as the previous word processed. 
+    For each new word, we begin by back-tracking to the node representing the common prefix of it and the previous word. 
+    As we do so, we minimize the right-hand part of the tree, the suffixes if you will. To minimize, from each node as we back-track, we look to the previously constructed parts of the tree and see if we find an identical one. 
+    Nodes are considered identical if they have the same terminal state, same outgoing edges, and for each of those edges, the children of both nodes are identical. 
+    Following the minimization to the common prefix, we insert the next word by adding edges and nodes from the current one. 
+    The last node is marked as terminal since the word ends there. After we've finished adding all the words, we'll minimize back to the root node.
+    </p>
+  </section>
+  
+  <section>
+	<header>
+		<h3>
+			Stepping through construction
+		</h3>
+	</header>
+    <p>
+      Here is an example <abbr title="Directed Acyclic Word Graph"><b>DAWG</b></abbr> for the following words:
+    </p>
+    <ol class="word-list">
+      <li>cat</li>
+      <li>cats</li>
+      <li>fact</li>
+      <li>facts</li>
+      <li>facet</li>
+      <li>facets</li>
+    </ol>
+    <div class="slide-show">
+      
+      <input type="radio" name="slider" id="slide1" checked/>
+      <input type="radio" name="slider" id="slide2" />
+      <input type="radio" name="slider" id="slide3" />
+      <input type="radio" name="slider" id="slide4" />
+      <input type="radio" name="slider" id="slide5" />
+      <input type="radio" name="slider" id="slide6" />
+      <input type="radio" name="slider" id="slide7" />
+      <input type="radio" name="slider" id="slide8" />
+      <input type="radio" name="slider" id="slide9" />
+      <input type="radio" name="slider" id="slide10" />
+      <input type="radio" name="slider" id="slide11" />
+      <input type="radio" name="slider" id="slide12" />
+      <input type="radio" name="slider" id="slide13" />
+      <input type="radio" name="slider" id="slide14" />
+
+      <div class="slide-wrapper">
+        <ol class="slides">
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+              </svg>
+              <figcaption>
+                We start with a root node.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+              </svg>
+              <figcaption>
+                From our current node, we add an edge to a new one. The edge is labeled with the character.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+              </svg>
+              <figcaption>
+                We previously added 'c', now we add 'a'.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+              </svg>
+              <figcaption>
+                When we reach the end of a word, we mark the node as terminal. In this diagram I use a nested circle.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+              </svg>
+              <figcaption>
+                We are done processing 'cat', we move on to the next word, 'cats'. The common prefix size is equal to our current depth, so we don't have to minimize/shrink any nodes. We continue from the last one by adding another edge for 's' and marking the new node
+                as terminal.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="460.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+              </svg>
+              <figcaption>
+                Now we add 'fact'. There are no nodes in common so we return to the root. Since there are no branches yet, no changes were made while minimizing the existing nodes.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="30" ry="30"/>
+                <text x="645.5" y="256.5" font-family="Times New Roman" font-size="20">9</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="460.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="555.5,250.5 620.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="620.5,250.5 612.5,245.5 612.5,255.5"/>
+                <text x="584.5" y="241.5" font-family="Times New Roman" font-size="20">s</text>
+              </svg>
+              <figcaption>
+                'facts' follows much like 'cats' did after 'cat'.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="460.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="525.5,220.5 525.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="525.5,80.5 520.5,88.5 530.5,88.5"/>
+                <text x="512.5" y="156.5" font-family="Times New Roman" font-size="20">s</text>
+              </svg>
+              <figcaption>
+                We now add 'facet'. The common prefix with the previous word is 'fac', so we will minimize nodes while traveling backwards from our current one to that point. On our first step back, we arrive at a node whose only edge is labeled 's' and points to a terminal node with no further
+                edges. We shrink the graph by transferring our edge to an identical existing node.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+              </svg>
+              <figcaption>
+                On our next step back we arrive at a node whose only edge is labeled 't' and points to a terminal node, which has an edge labeled s, pointing to a terminal node with no edges. An identical node already exists, so we move our edge to point there.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="30" ry="30"/>
+                <text x="645.5" y="256.5" font-family="Times New Roman" font-size="20">9</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="458.5" y="241.5" font-family="Times New Roman" font-size="20">e</text>
+                <polygon stroke="black" stroke-width="1" points="555.5,250.5 620.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="620.5,250.5 612.5,245.5 612.5,255.5"/>
+                <text x="585.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+              </svg>
+              <figcaption>
+                Having made our way back to the node reached from root by 'f'-'a'-'c', we can add our new word 'facet'
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="30" ry="30"/>
+                <text x="645.5" y="256.5" font-family="Times New Roman" font-size="20">9</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="125.5" rx="30" ry="30"/>
+                <text x="640.5" y="131.5" font-family="Times New Roman" font-size="20">10</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="125.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="458.5" y="241.5" font-family="Times New Roman" font-size="20">e</text>
+                <polygon stroke="black" stroke-width="1" points="555.5,250.5 620.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="620.5,250.5 612.5,245.5 612.5,255.5"/>
+                <text x="585.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="650.5,220.5 650.5,155.5"/>
+                <polygon fill="black" stroke-width="1" points="650.5,155.5 645.5,163.5 655.5,163.5"/>
+                <text x="637.5" y="194.5" font-family="Times New Roman" font-size="20">s</text>
+              </svg>
+              <figcaption>
+                As we've done twice before, when the entire word is the prefix, we simply extend from the current node.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="30" ry="30"/>
+                <text x="645.5" y="256.5" font-family="Times New Roman" font-size="20">9</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="650.5" cy="250.5" rx="24" ry="24"/>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="458.5" y="241.5" font-family="Times New Roman" font-size="20">e</text>
+                <polygon stroke="black" stroke-width="1" points="555.5,250.5 620.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="620.5,250.5 612.5,245.5 612.5,255.5"/>
+                <text x="585.5" y="241.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="634.6,225.06 541.4,75.94"/>
+                <polygon fill="black" stroke-width="1" points="541.4,75.94 541.4,85.374 549.88,80.074"/>
+                <text x="594.5" y="143.5" font-family="Times New Roman" font-size="20">s</text>
+              </svg>
+              <figcaption>
+                Now that we are done adding words, we minimize all the way back to the root. On our first step we notice again, an edge which points to a node identical to an already existing one. We shrink the graph by re-pointing our edge.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/>
+                <text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,250.5 495.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,250.5 487.5,245.5 487.5,255.5"/>
+                <text x="458.5" y="241.5" font-family="Times New Roman" font-size="20">e</text>
+                <polygon stroke="black" stroke-width="1" points="509.6,225.06 416.4,75.94"/>
+                <polygon fill="black" stroke-width="1" points="416.4,75.94 416.4,85.374 424.88,80.074"/>
+                <text x="451.5" y="169.5" font-family="Times New Roman" font-size="20">t</text>
+              </svg>
+              <figcaption>
+                Again, we re-point our edge when finding an existing identical node.
+              </figcaption>
+            </figure>
+          </li>
+          <li>
+            <figure>
+              <svg viewBox="0 0 700 300" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/>
+                <text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/>
+                <text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/>
+                <text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/>
+                <text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/>
+                <text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/>
+                <text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/>
+                <text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text>
+                <ellipse stroke="black" stroke-width="1" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/>
+                <text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,129.287 129.287,71.713"/>
+                <polygon fill="black" stroke-width="1" points="129.287,71.713 120.094,73.835 127.165,80.906"/>
+                <text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,50.5 245.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,50.5 237.5,45.5 237.5,55.5"/>
+                <text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,50.5 370.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,50.5 362.5,45.5 362.5,55.5"/>
+                <text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="430.5,50.5 495.5,50.5"/>
+                <polygon fill="black" stroke-width="1" points="495.5,50.5 487.5,45.5 487.5,55.5"/>
+                <text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text>
+                <polygon stroke="black" stroke-width="1" points="71.713,171.713 129.287,229.287"/>
+                <polygon fill="black" stroke-width="1" points="129.287,229.287 127.165,220.094 120.094,227.165"/>
+                <text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text>
+                <polygon stroke="black" stroke-width="1" points="180.5,250.5 245.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="245.5,250.5 237.5,245.5 237.5,255.5"/>
+                <text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text>
+                <polygon stroke="black" stroke-width="1" points="305.5,250.5 370.5,250.5"/>
+                <polygon fill="black" stroke-width="1" points="370.5,250.5 362.5,245.5 362.5,255.5"/>
+                <text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text>
+                <polygon stroke="black" stroke-width="1" points="400.5,220.5 400.5,80.5"/>
+                <polygon fill="black" stroke-width="1" points="400.5,80.5 395.5,88.5 405.5,88.5"/>
+                <text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text>
+                <polygon stroke="black" stroke-width="1" points="384.6,225.06 291.4,75.94"/>
+                <polygon fill="black" stroke-width="1" points="291.4,75.94 291.4,85.374 299.88,80.074"/>
+                <text x="344.5" y="143.5" font-family="Times New Roman" font-size="20">e</text>
+              </svg>
+              <figcaption>
+                And one final time.
+              </figcaption>
+            </figure>
+          </li>
+        </ol>
+      </div>
+
+      <div class="slider-prev-next-control">
+        <label for="slide1"></label>
+        <label for="slide2"></label>
+        <label for="slide3"></label>
+        <label for="slide4"></label>
+        <label for="slide5"></label>
+        <label for="slide6"></label>
+        <label for="slide7"></label>
+        <label for="slide8"></label>
+        <label for="slide9"></label>
+        <label for="slide10"></label>
+        <label for="slide11"></label>
+        <label for="slide12"></label>
+        <label for="slide13"></label>
+        <label for="slide14"></label>
+      </div>
+
+      <nav class="slider-dot-control">
+			<header style="display:none">
+				<h4>
+					Navigate slides
+				</h4>
+			</header>
+        <label for="slide1"></label>
+        <label for="slide2"></label>
+        <label for="slide3"></label>
+        <label for="slide4"></label>
+        <label for="slide5"></label>
+        <label for="slide6"></label>
+        <label for="slide7"></label>
+        <label for="slide8"></label>
+        <label for="slide9"></label>
+        <label for="slide10"></label>
+        <label for="slide11"></label>
+        <label for="slide12"></label>
+        <label for="slide13"></label>
+        <label for="slide14"></label>
+      </nav>
+    </div>
+    <p>
+      From the last slide, I'll point out what would have happened if we reduced past node 7 when going from 'facts' to 'facet'. 
+      The 'c' edge from 6 to 7 would instead be going from 6 to 2. 
+      If we then tried to add 'facet', we would be at an impasse. 
+      From root, 'fac' gets us to node 2, and from there, we would add our 'e' edge. 
+      'ca' also gets to node 2, therefore any suffix to fac would also need to be a suffix to 'ca'. 
+      <!-- ReSharper disable once MarkupTextTypo -->
+      There is no such word as caet in our dictionary and so our DAWG would be broken.
+    </p>
+  </section>
+  
+  <section>
+	<header>
+		<h3>Next steps</h3>
+	</header>
+    <p>
+      In the next article I'll go over the code for a basic implementation of a <abbr title="Directed Acyclic Word Graph">DAWG</abbr> in C#. 
+      With what we've learned and observed here, we know it needs an insertion method, a minimization method, and a data structure for the nodes.
+    </p>
+  </section>
+</article>
+</main>
+
+<aside>
+
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>
+</body>
+</html>
