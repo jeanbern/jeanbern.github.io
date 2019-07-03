@@ -10,7 +10,7 @@
   <link rel="license" href="https://jbp.dev/licenses.html"/>
   <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
   <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
-	<style>
+  <style>
 .word-list {
   display: flex;
   flex-direction: row;
@@ -134,6 +134,7 @@
   width: .5em;
   content: url("data:image/svg+xml; utf8, <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 512'><path d='M31.7 239l136-136c9.4-9.4 24.6-9.4 33.9 0l22.6 22.6c9.4 9.4 9.4 24.6 0 33.9L127.9 256l96.4 96.4c9.4 9.4 9.4 24.6 0 33.9L201.7 409c-9.4 9.4-24.6 9.4-33.9 0l-136-136c-9.5-9.4-9.5-24.6-.1-34z'/></svg>");
   padding-left: .25em;
+  line-height: normal;
 }
 #slide1:checked ~ .slider-dot-control label:nth-child(1), #slide2:checked ~ .slider-dot-control label:nth-child(2), #slide3:checked ~ .slider-dot-control label:nth-child(3), #slide4:checked ~ .slider-dot-control label:nth-child(4), #slide5:checked ~ .slider-dot-control label:nth-child(5), #slide6:checked ~ .slider-dot-control label:nth-child(6), #slide7:checked ~ .slider-dot-control label:nth-child(7), #slide8:checked ~ .slider-dot-control label:nth-child(8), #slide9:checked ~ .slider-dot-control label:nth-child(9), #slide10:checked ~ .slider-dot-control label:nth-child(10), #slide11:checked ~ .slider-dot-control label:nth-child(11), #slide12:checked ~ .slider-dot-control label:nth-child(12), #slide13:checked ~ .slider-dot-control label:nth-child(13), #slide14:checked ~ .slider-dot-control label:nth-child(14) {
   background: #333;
@@ -183,7 +184,7 @@
 #slide14:checked ~ .slide-wrapper .slides {
   margin-left: -1300%;
 }
-	</style>
+  </style>
 </head>
 
 <body>
@@ -260,8 +261,8 @@
       </li>
       <li>
         By combining the suffix shrinking of a <b>suffix tree</b> with the prefix graph of a <b>trie</b>, you can create a 
-		<a href="https://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton"><b>Directed Acyclic Word Graph</b></a>. 
-		It is an instance of a Finite State Automata and is sometimes referred to as such.
+    <a href="https://en.wikipedia.org/wiki/Deterministic_acyclic_finite_state_automaton"><b>Directed Acyclic Word Graph</b></a>. 
+    It is an instance of a Finite State Automata and is sometimes referred to as such.
         This data structure is optimized to contain the smallest amount of edges and nodes, which will be less than a <b>trie</b> or <b>suffix tree</b> on their own could achieve. 
         As with the other graph based methods, lookup is O(m)
       </li>
@@ -318,11 +319,11 @@
   </section>
   
   <section>
-	<header>
-		<h3>
-			Stepping through construction
-		</h3>
-	</header>
+  <header>
+    <h3>
+      Stepping through construction
+    </h3>
+  </header>
     <p>
       Here is an example <abbr title="Directed Acyclic Word Graph"><b>DAWG</b></abbr> for the following words:
     </p>
@@ -1014,11 +1015,11 @@
       </div>
 
       <nav class="slider-dot-control">
-			<header style="display:none">
-				<h4>
-					Navigate slides
-				</h4>
-			</header>
+      <header style="display:none">
+        <h4>
+          Navigate slides
+        </h4>
+      </header>
         <label for="slide1"></label>
         <label for="slide2"></label>
         <label for="slide3"></label>
@@ -1047,9 +1048,9 @@
   </section>
   
   <section>
-	<header>
-		<h3>Next steps</h3>
-	</header>
+  <header>
+    <h3>Next steps</h3>
+  </header>
     <p>
       In the next article I'll go over the code for a basic implementation of a <abbr title="Directed Acyclic Word Graph">DAWG</abbr> in C#. 
       With what we've learned and observed here, we know it needs an insertion method, a minimization method, and a data structure for the nodes.
