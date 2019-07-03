@@ -190,7 +190,6 @@
 <body>
 <header>
   <h2>
-      <!-- ReSharper disable once MarkupTextTypo -->
       JB's BLOG
   </h2>
 </header>
@@ -250,8 +249,8 @@
         We could use a <b>hashset</b>. O(m) lookup where m is the size of the word. Hashing isn't free after all.
       </li>
       <li>
-        We might consider splitting up strings into base + suffix. Think of “run”. 
-        It’s a word on its own but it extends to “runs”, “running”, “runner”, “runners”, etc. 
+        We might consider splitting up strings into base + suffix. Think of 'run'. 
+        It’s a word on its own but it extends to 'runs', 'running', 'runner', 'runners', etc. 
         If those endings are shared with any other words, they could share a suffix list. 
         This is a <a href="https://en.wikipedia.org/wiki/Suffix_tree"><b>suffix tree</b></a> and it can save a substantial amount of storage space. 
         A <b>suffix tree</b> provides O(m) lookup on the size of the word.
@@ -270,13 +269,13 @@
     <p>
       Before we continue, I'll point out that with a <b>suffix tree</b> or a <abbr title="Directed Acyclic Word Graph"><b>DAWG</b></abbr>, additional state is required if you want to uniquely map a string to another value. 
       Without this extra information, there are many possible ways to reach a single end-point in the graph and no way to distinguish them.       
-      One method to do this with a <b>DAWG</b> is described in <cite>
-    <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf">Applications of Finite Automata Representing Large Vocabularies</a> by
-    <!-- ReSharper disable once MarkupTextTypo -->
-    Luccesi and
-    <!-- ReSharper disable once MarkupTextTypo -->
-    Kowaltowski
-</cite>.
+      One method to do this with a <b>DAWG</b> is described in 
+			<cite>
+				<a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&rep=rep1&type=pdf">
+					Applications of Finite Automata Representing Large Vocabularies
+				</a> 
+				by Luccesi and Kowaltowski
+			</cite>.
       For now we'll skip over it, but it will come up in the next article.
     </p>
   </section>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Directed Acyclic Word Graphs - Part 2 - First Implementation</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="This article describes the DAWG data structure, compares it to other methods of storing a dictionary, and details how to build one."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://jbp.dev/blog/dawg-first-implementation.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+</head>
+<body>
+
+<header>
+  <h2>
+      JB's BLOG
+  </h2>
+</header>
+
+<nav>
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>Directed Acyclic Word Graphs</h1>
+    <h2>Part 2 - First Implementation</h2>
+  </header>
+
+  <section>
+    <header>
+      <h3>A class representing nodes</h3>
+    </header>
+    <pre style="background: white; font-family: Consolas; font-size: 13px;"><code class="language-csharp"><span class="csharp-blue">internal</span> <span class="csharp-blue">sealed</span> <span class="csharp-blue">class</span> <span class="csharp-teal">BasicNode</span>
+{
+    <span class="csharp-blue">public</span> <span class="csharp-blue">bool</span> IsTerminal { <span class="csharp-blue">get</span>; <span class="csharp-blue">set</span>; }
+    <span class="csharp-blue">public</span> <span class="csharp-blue">int</span> Id;
+    <span class="csharp-blue">public</span> <span class="csharp-teal">Dictionary</span>&lt;<span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt; Children = <span class="csharp-blue">new</span> <span class="csharp-teal">Dictionary</span>&lt;<span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt;();
+}</code></pre>
+  </section>
+  
+  <section>
+    <header>
+      <h3>A class for building the DAWG</h3>
+    </header>
+    <p>
+      Here are the algorithms from the previous post. This is modified from 
+      <a href="http://stevehanov.ca/blog/?id=115">Steve Hannov's python code</a>.
+    </p>
+    <pre style="background: white; font-family: Consolas; font-size: 13px;"><code class="language-csharp"><span class="csharp-blue">internal</span> <span class="csharp-blue">sealed</span> <span class="csharp-blue">class</span> <span class="csharp-teal">BasicDawgBuilder</span>
+{
+    <span class="csharp-blue">private</span> <span class="csharp-blue">string</span> _previousWord = <span class="csharp-brown">""</span>;
+    <span class="csharp-blue">public</span> <span class="csharp-teal">BasicNode</span> Root = <span class="csharp-blue">new</span> <span class="csharp-teal">BasicNode</span>();
+    <span class="csharp-blue">private</span> <span class="csharp-blue">readonly</span> <span class="csharp-teal">Dictionary</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-teal">BasicNode</span>&gt; _minimizedNodes = <span class="csharp-blue">new</span> <span class="csharp-teal">Dictionary</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-teal">BasicNode</span>&gt;();
+    <span class="csharp-blue">private</span> <span class="csharp-blue">readonly</span> <span class="csharp-teal">Stack</span>&lt;<span class="csharp-teal">Tuple</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt;&gt; _uncheckedNodes = <span class="csharp-blue">new</span> <span class="csharp-teal">Stack</span>&lt;<span class="csharp-teal">Tuple</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt;&gt;();
+
+    <span class="csharp-blue">public</span> <span class="csharp-blue">void</span> <span class="csharp-gold">Insert</span>(<span class="csharp-blue">string</span> <span class="csharp-navy">word</span>)
+    {
+        <span class="csharp-blue">var</span> <span class="csharp-navy">commonPrefix</span> = <span class="csharp-gold">CommonPrefix</span>(<span class="csharp-navy">word</span>);
+        <span class="csharp-gold">Minimize</span>(<span class="csharp-navy">commonPrefix</span>);
+
+        <span class="csharp-blue">var</span> <span class="csharp-navy">node</span> = _uncheckedNodes.Count == 0 ? Root : _uncheckedNodes.<span class="csharp-gold">Peek</span>().Item3;
+
+        <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">letter</span> <span class="csharp-purple">in</span> <span class="csharp-navy">word</span>.<span class="csharp-gold">Skip</span>(<span class="csharp-navy">commonPrefix</span>))
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-navy">nextNode</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">BasicNode</span>();
+            <span class="csharp-navy">node</span>.Children[<span class="csharp-navy">letter</span>] = <span class="csharp-navy">nextNode</span>;
+            _uncheckedNodes.<span class="csharp-gold">Push</span>(<span class="csharp-blue">new</span> <span class="csharp-teal">Tuple</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt;(<span class="csharp-navy">node</span>, <span class="csharp-navy">letter</span>, <span class="csharp-navy">nextNode</span>));
+            <span class="csharp-navy">node</span> = <span class="csharp-navy">nextNode</span>;
+        }
+
+        <span class="csharp-navy">node</span>.IsTerminal = <span class="csharp-blue">true</span>;
+        _previousWord = <span class="csharp-navy">word</span>;
+    }
+
+    <span class="csharp-blue">private</span> <span class="csharp-blue">int</span> <span class="csharp-gold">CommonPrefix</span>(<span class="csharp-blue">string</span> <span class="csharp-navy">word</span>)
+    {
+        <span class="csharp-purple">for</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">commonPrefix</span> = 0; <span class="csharp-navy">commonPrefix</span> &lt; <span class="csharp-teal">Math</span>.<span class="csharp-gold">Min</span>(<span class="csharp-navy">word</span>.Length, _previousWord.Length); <span class="csharp-navy">commonPrefix</span>++)
+        {
+            <span class="csharp-purple">if</span> (<span class="csharp-navy">word</span>[<span class="csharp-navy">commonPrefix</span>] != _previousWord[<span class="csharp-navy">commonPrefix</span>])
+            {
+                <span class="csharp-purple">return</span> <span class="csharp-navy">commonPrefix</span>;
+            }
+        }
+
+        <span class="csharp-purple">return</span> 0;
+    }
+
+    <span class="csharp-blue">public</span> <span class="csharp-teal">BasicNode</span> <span class="csharp-gold">Finish</span>()
+    {
+        <span class="csharp-gold">Minimize</span>(0);
+        _minimizedNodes.<span class="csharp-gold">Clear</span>();
+        _uncheckedNodes.<span class="csharp-gold">Clear</span>();
+
+        <span class="csharp-purple">return</span> Root;
+    }
+
+    <span class="csharp-blue">private</span> <span class="csharp-blue">void</span> <span class="csharp-gold">Minimize</span>(<span class="csharp-blue">int</span> <span class="csharp-navy">downTo</span>)
+    {
+        <span class="csharp-purple">for</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">i</span> = _uncheckedNodes.Count - 1; <span class="csharp-navy">i</span> &gt; <span class="csharp-navy">downTo</span> - 1; <span class="csharp-navy">i</span>--)
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-navy">unNode</span> = _uncheckedNodes.<span class="csharp-gold">Pop</span>();
+            <span class="csharp-blue">var</span> <span class="csharp-navy">parent</span> = <span class="csharp-navy">unNode</span>.Item1;
+            <span class="csharp-blue">var</span> <span class="csharp-navy">letter</span> = <span class="csharp-navy">unNode</span>.Item2;
+            <span class="csharp-blue">var</span> <span class="csharp-navy">child</span> = <span class="csharp-navy">unNode</span>.Item3;
+
+            <span class="csharp-purple">if</span> (_minimizedNodes.<span class="csharp-gold">TryGetValue</span>(<span class="csharp-navy">child</span>, <span class="csharp-blue">out</span> <span class="csharp-blue">var</span> <span class="csharp-navy">newChild</span>))
+            {
+                <span class="csharp-navy">parent</span>.Children[<span class="csharp-navy">letter</span>] = <span class="csharp-navy">newChild</span>;
+            }
+            <span class="csharp-purple">else</span>
+            {
+                _minimizedNodes.<span class="csharp-gold">Add</span>(<span class="csharp-navy">child</span>, <span class="csharp-navy">child</span>);
+            }
+        }
+    }
+}</code></pre>
+  </section>
+  <section>
+    <header>
+      <h3>Perfect hashing</h3>
+    </header>
+    <p>
+      Finally, here is the extension to include
+			<cite>
+				<a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&amp;rep=rep1&amp;type=pdf">
+					Applications of Finite Automata Representing Large Vocabularies
+				</a>
+				by Luccesi and Kowaltowski
+			</cite>
+      that I hinted at in the previous article.
+    </p>    
+    <p>
+      Because we decided to work with sorted lists, this is super-easy.
+      Simply track the word counts as they come in.
+      They're already in order!
+			There will be a little bit of work to pair a word with it's index in the list, but thankfully, that's taken care of in the next post.
+    </p>    
+<pre style="background: white; font-family: Consolas; font-size: 13px;"><code class="language-csharp"><span class="csharp-blue">public</span> <span class="csharp-teal">List</span>&lt;<span class="csharp-blue">long</span>&gt; WordCounts = <span class="csharp-blue">new</span> <span class="csharp-teal">List</span>&lt;<span class="csharp-blue">long</span>&gt;();
+
+<span class="csharp-blue">public</span> <span class="csharp-blue">void</span> <span class="csharp-gold">Insert</span>(<span class="csharp-blue">string</span> <span class="csharp-navy">word</span>)
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">commonPrefix</span> = <span class="csharp-gold">CommonPrefix</span>(<span class="csharp-navy">word</span>);
+    <span class="csharp-gold">Minimize</span>(<span class="csharp-navy">commonPrefix</span>);
+
+    <span class="csharp-blue">var</span> <span class="csharp-navy">node</span> = _uncheckedNodes.Count == 0 ? Root : _uncheckedNodes.<span class="csharp-gold">Peek</span>().Item3;
+
+    <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">letter</span> <span class="csharp-purple">in</span> <span class="csharp-navy">word</span>.<span class="csharp-gold">Skip</span>(<span class="csharp-navy">commonPrefix</span>))
+    {
+        <span class="csharp-blue">var</span> <span class="csharp-navy">nextNode</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">BasicNode</span>();
+        <span class="csharp-navy">node</span>.Children[<span class="csharp-navy">letter</span>] = <span class="csharp-navy">nextNode</span>;
+        _uncheckedNodes.<span class="csharp-gold">Push</span>(<span class="csharp-blue">new</span> <span class="csharp-teal">Tuple</span>&lt;<span class="csharp-teal">BasicNode</span>, <span class="csharp-blue">char</span>, <span class="csharp-teal">BasicNode</span>&gt;(<span class="csharp-navy">node</span>, <span class="csharp-navy">letter</span>, <span class="csharp-navy">nextNode</span>));
+        <span class="csharp-navy">node</span> = <span class="csharp-navy">nextNode</span>;
+    }
+
+    <span class="csharp-navy">node</span>.IsTerminal = <span class="csharp-blue">true</span>;
+    _previousWord = <span class="csharp-navy">word</span>;
+    WordCounts.<span class="csharp-gold">Add</span>(<span class="csharp-navy">count</span>);
+}</code></pre>
+  </section>
+</article>
+</main>
+
+<aside>
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>  
+
+</body>
+</html>

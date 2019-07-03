@@ -259,6 +259,9 @@ code.language-csharp {
 span.csharp-blue {
   color: #0000ff;
 }
+span.csharp-navy {
+  color: #1f377f;
+}
 span.csharp-teal {
   color: #2b91af;
 }
@@ -270,6 +273,12 @@ span.csharp-red {
 }
 span.csharp-green {
   color: #008000;
+}
+span.csharp-purple {
+  color: #8f08c4;
+}
+span.csharp-gold {
+  color: #74531f;
 }
 
 code.language-xml {
