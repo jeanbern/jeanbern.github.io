@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>http://jbp.dev/index.html</loc>
+    <loc>https://jbp.dev/index.html</loc>
     <lastmod>2019-07-04T16:20-06:00</lastmod>
   </url>
   <url>
-    <loc>http://jbp.dev/licenses.html</loc>
+    <loc>https://jbp.dev/licenses.html</loc>
     <lastmod>2019-07-04T16:20-06:00</lastmod>
   </url>
   <url>
-    <loc>http://jbp.dev/blog/custom-binary-serialization.html</loc>
+    <loc>https://jbp.dev/blog/custom-binary-serialization.html</loc>
     <lastmod>2019-07-04T16:20-06:00</lastmod>
   </url>
   <url>
-    <loc>http://jbp.dev/blog/dawg-basics.html</loc>
+    <loc>https://jbp.dev/blog/dawg-basics.html</loc>
     <lastmod>2019-07-04T16:20-06:00</lastmod>
   </url>
   <url>
-    <loc>http://jbp.dev/blog/dawg-first-implementation.html</loc>
+    <loc>https://jbp.dev/blog/dawg-first-implementation.html</loc>
     <lastmod>2019-07-04T16:20-06:00</lastmod>
   </url>
 </urlset>
