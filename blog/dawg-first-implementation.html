@@ -1,7 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Directed Acyclic Word Graphs - Part 2 - First Implementation</title>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143311168-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143311168-1');
+  </script>
+  <title>Directed Acyclic Word Graphs - Part 2 - First Implementation in C#</title>
   <meta name="author" content="Jean-Bernard Pellerin"/>
   <meta name="description" content="This article describes the DAWG data structure, compares it to other methods of storing a dictionary, and details how to build one."/>
   <meta name="generator" content="100% organic human"/>
@@ -10,6 +19,61 @@
   <link rel="license" href="https://jbp.dev/licenses.html"/>
   <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
   <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://jbp.dev/#organization",
+            "name": "jbp.dev",
+            "url": "https://jbp.dev/",
+            "sameAs": [
+                "https://www.facebook.com/jbpellerin",
+                "https://www.linkedin.com/in/jean-bernard-pellerin-026bbb23",
+                "https://twitter.com/jeanbpellerin"
+            ],
+            "logo": {
+                "@type": "ImageObject",
+                "@id": "https://jbp.dev/#logo",
+                "url": "https://jbp.dev/img/bird.jpg",
+                "caption": "jbp.dev"
+            },
+            "image": {
+                "@id": "https://jbp.dev/#logo"
+            }
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://jbp.dev/#website",
+            "url": "https://jbp.dev/",
+            "name": "jbp.dev",
+            "publisher": {
+                "@id": "https://jbp.dev/#organization"
+            }/*,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://jbp.dev/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }*/
+        },
+        {
+            "@type": "WebPage",
+            "@id": "https://jbp.dev/blog/dawg-first-implementation.html.html#webpage",
+            "url": "https://jbp.dev/blog/dawg-first-implementation.html.html",
+            "inLanguage": "en",
+            "name": "Directed Acyclic Word Graphs - Part 2 - First Implementation in C#",
+            "isPartOf": {
+                "@id": "https://jbp.dev/#website"
+            },
+            "about": {
+                "@id": "https://jbp.dev/#organization"
+            },
+            "description": "Overview of DAWG data structures and an algorithm to create them."
+        }
+    ]
+}
+  </script>
 </head>
 <body>
 
@@ -20,6 +84,63 @@
 </header>
 
 <nav>
+  <section>
+    <header>
+      <h2>Breadcrumb</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/index.html" title="jbp.dev - Homepage">Home</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">Blog - DAWG - First Implementation in C#</a>
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>DAWG series</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-basics.html" title="Directed Acyclic Word Graphs - Part 1 - The Basics">The Basics</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">First Implementation in C#</a>
+      </li>
+      <li>
+        Reducing DAWG memory footprint
+      </li>
+      <li>
+        Using the DAWG to find spelling errors
+      </li>
+      <li>
+        DAWG performance profiling - part 1
+      </li>
+      <li>
+        Potential DAWG performance improvements
+      </li>
+      <li>
+        Speedy DAWG
+      </li>
+      <li>
+        DAWG performance profiling - part 2
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>Other pages</h2>
+    </header>
+    <ul>
+      <li>
+        <a href="https://jbp.dev/licenses.html" title="About jbp.dev - Licenses">Licenses</a>
+      </li>
+      <li>
+      <a href="http://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Custom Binary Serialization in C#</a>
+      </li>
+    </ul>
+  </section>
 </nav>
 
 <main>
@@ -124,19 +245,19 @@
     </header>
     <p>
       Finally, here is the extension to include
-			<cite>
-				<a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&amp;rep=rep1&amp;type=pdf">
-					Applications of Finite Automata Representing Large Vocabularies
-				</a>
-				by Luccesi and Kowaltowski
-			</cite>
+      <cite>
+        <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.5272&amp;rep=rep1&amp;type=pdf">
+          Applications of Finite Automata Representing Large Vocabularies
+        </a>
+        by Luccesi and Kowaltowski
+      </cite>
       that I hinted at in the previous article.
     </p>    
     <p>
       Because we decided to work with sorted lists, this is super-easy.
       Simply track the word counts as they come in.
       They're already in order!
-			There will be a little bit of work to pair a word with it's index in the list, but thankfully, that's taken care of in the next post.
+      There will be a little bit of work to pair a word with it's index in the list, but thankfully, that's taken care of in the next post.
     </p>    
 <pre style="background: white; font-family: Consolas; font-size: 13px;"><code class="language-csharp"><span class="csharp-blue">public</span> <span class="csharp-teal">List</span>&lt;<span class="csharp-blue">long</span>&gt; WordCounts = <span class="csharp-blue">new</span> <span class="csharp-teal">List</span>&lt;<span class="csharp-blue">long</span>&gt;();
 
@@ -164,6 +285,17 @@
 </main>
 
 <aside>
+  <figure>
+    <img src="https://jbp.dev/img/bird.jpg" alt="You caught me, I'm not a bird."/>
+    <figcaption>Jean-Bernard Pellerin</figcaption>
+  </figure>
+  <p>
+    LOOK AT ME!
+  </p>
+  <p>
+    Contact:
+    I can be reached <a href="mailto:jbp@jbp.dev">by email</a>.
+  </p>
 </aside>
 
 <footer>

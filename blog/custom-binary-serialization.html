@@ -10,12 +10,12 @@
 
     gtag('config', 'UA-143311168-1');
   </script>
-  <title>About jbp.dev - Licenses</title>
+  <title>Custom Binary Serialization in C#</title>
   <meta name="author" content="Jean-Bernard Pellerin"/>
-  <meta name="description" content="Licenses applicable when reusing content from this site."/>
+  <meta name="description" content="A method for serializing unmanaged C# types into a binary format. Very fast and allocates as little memory as possible."/>
   <meta name="generator" content="100% organic human"/>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="canonical" href="https://jbp.dev/licenses.html"/>
+  <link rel="canonical" href="https://jbp.dev/blog/custom-binary-serialization.html"/>
   <link rel="license" href="https://jbp.dev/licenses.html"/>
   <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
   <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
@@ -59,27 +59,27 @@
         },
         {
             "@type": "WebPage",
-            "@id": "https://jbp.dev/license.html#webpage",
-            "url": "https://jbp.dev/license.html",
+            "@id": "https://jbp.dev/blog/custom-binary-serialization.html#webpage",
+            "url": "https://jbp.dev/blog/custom-binary-serialization.html",
             "inLanguage": "en",
-            "name": "About jbp.dev - Licenses",
+            "name": "Custom Binary Serialization in C#",
             "isPartOf": {
                 "@id": "https://jbp.dev/#website"
             },
             "about": {
                 "@id": "https://jbp.dev/#organization"
             },
-            "description": "Licenses applicable when reusing content from this site."
+            "description": "A method for serializing unmanaged C# types into a binary format. Very fast and allocates as little memory as possible."
         }
     ]
 }
   </script>
 </head>
-
 <body>
+
 <header>
   <h2>
-    Copyrights and licenses
+      JB's BLOG
   </h2>
 </header>
 
@@ -93,7 +93,7 @@
         <a href="https://jbp.dev/index.html" title="jbp.dev - Homepage">Home</a>
       </li>
       <li>
-        <a href="https://jbp.dev/Licenses.html" title="About jbp.dev - Licenses">About - Licenses</a>
+        <a href="https://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Blog - Custom Binary Serialization</a>
       </li>
     </ol>
   </section>
@@ -146,56 +146,41 @@
 <main>
 <article>
   <header>
-    <h1>
-      Using content from this site
-    </h1>
+    <h1>Custom Binary Serialization in C#</h1>
   </header>
+  
+  <p>
+    There are <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/" title="Serialization in .NET">plenty of ways</a>
+    to serialize your data in C#.
+    I'm going to explore one of these, <a href="https://docs.microsoft.com/en-us/dotnet/standard/serialization/binary-serialization" title="Binary serialization">Binary serialization</a>,
+    but instead of using .NET libraries, we're going to roll our own for fun. 
+    Afterwards, I'll do some performance testing to see how it stacks up.
+  </p>
+  
+  <p>
+    In this article I'll be using .NET core 2.1 for
+    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.span-1?view=netstandard-2.1" title="Span<T> Struct">
+      <code>Span&lt;T&gt;</code>
+    </a>
+    and the
+    <a href="https://www.nuget.org/packages/System.Runtime.CompilerServices.Unsafe/" title="System.Runtime.CompilerServices.Unsafe">
+      System.Runtime.CompilerServices.Unsafe
+    </a>
+    package.
+    I'll also show a hacky work-around you can try for Framework 4.7, it's pretty bad.
+  </p>
+  
+  
+  
   <section>
     <header>
-      <h2>Articles</h2>
-      <p>
-        This section covers articles posted under the <code>/blog</code> path.
-      </p>
+      <h3>Writing to a stream</h3>
     </header>
     <p>
-      Unless otherwise indicated, the content is available under the terms of the 
-      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license</a> (CC BY-NC-SA 4.0).
-    </p>
-    <p>
-      When reusing blog content, you must ensure three things:
-    </p>
-    <ol>
-      <li>Attribution is given to the original content.</li>
-      <li>
-        The reuse is not for commercial purposes. 
-        <aside>
-          <h4 style="display: inline">Permission</h4>
-          In the odd case you do want to use it this way, I will probably grant permission, but you do have to ask first.
-        </aside>
-      </li>
-      <li>Your reuse is published under the same license as the original content &#8212; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</li>
-    </ol>
-    
-    <p>
-      For example, this page derives from 
-      <a href="https://developer.mozilla.org/en-US/docs/MDN/About#Using_MDN_Web_Docs_content">Using MDN Web Docs Content</a>
-      by <a href="https://developer.mozilla.org/en-US/docs/MDN/About$history">Mozilla Contributors</a>
-      which is licensed under <a href="http://creativecommons.org/licenses/by-sa/2.5/">CC-BY-SA 2.5</a>.
-      As such, I hereby license this particular page under those same terms.
-    </p>
+    Under construction.
+    </p>  
   </section>
-
-  <section>
-    <header>
-      <h2>Code samples and snippets</h2>
-    </header>
-    <p>
-      Unless otherwise specified, code samples on this site are available under the 
-      <a href="http://www.opensource.org/licenses/mit-license.php">MIT license</a>.
-      You should insert the following attribution information into the MIT template: 
-      "© &lt;The latest of: 1. The year in the footer. or 2. The article publish date.&gt; Jean-Bernard Pellerin (jbp.dev)".
-    </p>
-  </section>
+  
 </article>
 </main>
 
@@ -215,8 +200,9 @@
 
 <footer>
   <p>
-    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+    <b><a href="https://jbp.dev/licenses.html">Â© 2019 Jean-Bernard Pellerin</a></b>
   </p>
-</footer>
+</footer>  
+
 </body>
 </html>
