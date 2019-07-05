@@ -157,30 +157,308 @@
     Afterwards, I'll do some performance testing to see how it stacks up.
   </p>
   
+  <section>
+  <header>
+  <h3>Requirements</h3>
+  </header>
   <p>
-    In this article I'll be using .NET core 2.1 for
-    <a href="https://docs.microsoft.com/en-us/dotnet/api/system.span-1?view=netstandard-2.1" title="Span<T> Struct">
-      <code>Span&lt;T&gt;</code>
-    </a>
-    and the
-    <a href="https://www.nuget.org/packages/System.Runtime.CompilerServices.Unsafe/" title="System.Runtime.CompilerServices.Unsafe">
-      System.Runtime.CompilerServices.Unsafe
-    </a>
-    package.
-    I'll also show a hacky work-around you can try for Framework 4.7, it's pretty bad.
+    I use some new C# features and libraries.
   </p>
-  
-  
+  <ul>
+    <li>
+      <p>
+        .NET core 2.1 for
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.span-1?view=netstandard-2.1" title="Span<T> Struct">
+          <code>Span&lt;T&gt;</code>
+        </a>.
+        <br/>
+        I'll also show a <em>hacky</em> work-around you can try for .NET Framework, it's pretty bad.
+      </p>
+      <aside>
+        Further reading: 
+        <a href="https://msdn.microsoft.com/en-us/magazine/mt814808.aspx">
+          All About Span: Exploring a New .NET Mainstay
+        </a>
+        by
+        <a href="https://devblogs.microsoft.com/pfxteam/author/toub/">
+          Stephen Taub
+        </a>
+      </aside>
+    </li>
+    <li>
+      <p>
+        A compiler that supports C# 7.3 for the
+        <a href="https://docs.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-7-3#enhanced-generic-constraints" title="Enhanced generic constraints">
+          <code>unmanaged</code> constraint
+        </a>.
+      </p>
+      <aside>
+        Further reading:
+        <a href="https://devblogs.microsoft.com/premier-developer/dissecting-new-generics-constraints-in-c-7-3/">
+          Dissecting new generic constraints in C# 7.3
+        </a>
+        by
+        <a href="https://devblogs.microsoft.com/premier-developer/author/seteplia/">
+          Sergey Tepliakov
+        </a>
+      </aside>
+    </li>
+    <li>
+      <p>The NuGet package:
+        <a href="https://www.nuget.org/packages/System.Runtime.CompilerServices.Unsafe/">
+          System.Runtime.CompilerServices.Unsafe
+        </a>
+      </p>
+      <aside>
+        Further reading:
+        <a href="https://mattwarren.org/2016/09/14/Subverting-.NET-Type-Safety-with-System.Runtime.CompilerServices.Unsafe/">
+          Subverting .NET Type Safety with 'System.Runtime.CompilerServices.Unsafe'
+        </a>
+        by
+        <a href="https://mattwarren.org/about/">
+          Matt Warren
+        </a>
+      </aside>
+    </li>
+  </ul>
+  </section>
   
   <section>
     <header>
       <h3>Writing to a stream</h3>
     </header>
-    <p>
-    Under construction.
-    </p>  
+    <section>
+      <header>
+        <h4 class="no-start-end-margin">Old busted</h4>
+      </header>
+      <p>
+        The traditional way to write a struct to a stream has been to use the 
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal?view=netframework-4.8">
+          Marshal class
+        </a>
+        and both
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal.structuretoptr?view=netframework-4.8#System_Runtime_InteropServices_Marshal_StructureToPtr__1___0_System_IntPtr_System_Boolean_" title="StructureToPtr<T>(T, IntPtr, Boolean)">
+          <code>StructureToPtr</code>
+        </a>
+        and 
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.marshal.sizeof?view=netframework-4.8#System_Runtime_InteropServices_Marshal_SizeOf__1___0_" title="SizeOf<T>(T)">
+          SizeOf
+        </a>
+        to create a new <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> which gets passed to <code class="language-csharp"><span class="csharp-teal">Stream</span>.<span class="csharp-gold">Write</span></code>.
+        If your objects are large, or if you have a lot of them, your performance and resource usage can be negatively affected.
+      </p>
+    </section>
+    <section>
+      <header>
+        <h4 class="no-start-end-margin">New hotness</h4>
+      </header>
+      <p>
+        With some trickery, <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;</code> can be made to point in-place to your existing struct.
+        The main hurdle here is that we don't start off with a byte[], so how can we use any of <code class="language-csharp"><span class="csharp-teal">Span</span></code>'s constructors?
+        That's where <code class="language-csharp">System.Runtime.CompilerServices.Unsafe</code> comes in.
+        With the <code class="language-csharp"><span class="csharp-teal">AsPointer</span></code> method, we can convert our struct and use the constructor
+        <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">Void</span>*, <span class="csharp-teal">Int32</span>)</code>.
+      </p>
+      <p>
+        That constructor does require a length, so how do we get it?
+        With the <code class="language-csharp">unmanaged</code> constraint, we can use the <code class="language-csharp"><span class="csharp-blue">sizeof</span></code> operator on our type.
+        It's also a constraint for <code class="language-csharp"><span class="csharp-gold">AsPointer</span></code>, so we need it anyways.
+      </p>
+      <p>
+        .NET Core 2.1 added a new overload to <code class="language-csharp"><span class="csharp-teal">Stream</span>.<span class="csharp-gold">Write</span></code>:
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.io.stream.write?view=netcore-2.1#System_IO_Stream_Write_System_ReadOnlySpan_System_Byte__" title="Write(ReadOnlySpan<Byte>)">
+          <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-teal">ReadOnlySpan</span>&lt;<span class="csharp-blue">byte</span>&gt;)</code></a>.
+        With this, we completely bypass using a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>.
+        We simply point to our existing struct, and trick the stream into thinking it's a collection of bytes.
+      </p>
+      <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe void</span> <span class="csharp-gold">Write</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>, <span class="csharp-teal">T</span> <span class="csharp-navy">value</span>)
+    <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">pointer</span> = <span class="csharp-teal">Unsafe</span>.<span class="csharp-gold">AsPointer</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">value</span>);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">span</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;(<span class="csharp-navy">pointer</span>, <span class="csharp-blue">sizeof</span>(<span class="csharp-teal">T</span>));
+    <span class="csharp-navy">stream</span>.<span class="csharp-gold">Write</span>(<span class="csharp-navy">span</span>);
+}</code></pre>
+    </section>
   </section>
   
+  <section>
+    <header>
+      <h3>Reading from a stream</h3>
+    </header>
+    <p>
+      This is very similar to writing. 
+      We save one allocation by reading into our final memory location, and that also saves one copy operation.
+    </p>
+    <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe</span> <span class="csharp-teal">T</span> <span class="csharp-gold">Read</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>)
+    <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">result</span> = <span class="csharp-blue">default</span>(<span class="csharp-teal">T</span>);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">pointer</span> = <span class="csharp-teal">Unsafe</span>.<span class="csharp-gold">AsPointer</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">result</span>);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">span</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;(<span class="csharp-navy">pointer</span>, <span class="csharp-blue">sizeof</span>(<span class="csharp-teal">T</span>));
+    <span class="csharp-navy">stream</span>.<span class="csharp-gold">Read</span>(<span class="csharp-navy">span</span>);
+    <span class="csharp-purple">return</span> <span class="csharp-navy">result</span>;
+}</code></pre>
+  </section>
+  
+  <section>
+    <header>
+      <h3>Performance</h3>
+    </header>
+    <section>
+      <header>
+        <h4>Setup</h4>
+      </header>
+      <p>
+        This is not going to be a perfect performance test. 
+        I'm only comparing my method to a couple of others, and I'm only using one test case.
+        The data comes from a class I'm using in another project and represents my real use-case.
+        It's not even using structs, just long arrays of value types.
+        The full code can be found here:
+        <a>
+          TODO: PUT THIS ON GITHUB AND LINK TO IT
+        </a>
+      </p>
+      <p>
+        We have just over 1.4MB:
+      </p>
+      <pre><code class="language-csharp"><span class="csharp-blue">private readonly int</span> _terminalNodeIndex;
+<span class="csharp-blue">private readonly int</span> _rootNodeIndex;
+<span class="csharp-blue">private readonly int</span>[] _firstChildEdgeIndex; // length: 38,745
+<span class="csharp-blue">private readonly int</span>[] _edgesToNodeIndex; //length: 85,600
+<span class="csharp-blue">private readonly char</span>[] _edgeCharacter; //length: 85,600
+<span class="csharp-blue">private readonly ushort</span>[] _reachableTerminalNodes; // length: 38,744
+<span class="csharp-blue">private readonly long</span>[] _wordCount; //length: 82,765</code></pre>
+    </section>
+    <section>
+      <header>
+        <h4>Results</h4>
+      </header>
+      <p>
+        After some initial warm up to avoid JIT issues, I loaded the object from a file 1000 times with each method and here are the results.
+      </p>
+      <ul>
+        <li>
+            Custom: 495ms
+        </li>
+        <li>
+          <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter?view=netcore-2.1" title="BinaryFormatter Class">
+            BinaryFormatter
+          </a>: 2162ms
+        </li>
+        <li>
+          <a href="https://github.com/neuecc/ZeroFormatter">
+            ZeroFormatter
+          </a>: 923ms
+        </li>
+      </ul>
+      <p>
+        I win!
+        This result isn't surprising as this is basically a hand-written serializer.
+        The other methods have to rely on reflection which can be a substantial burden.
+      </p>
+      <p>
+        The size of the files are also slightly different.
+        <ul>
+          <li>
+            Custom: 1,322,620 bytes
+          </li>
+          <li>
+            BinaryFormatter: 1,322,944 bytes
+          </li>
+          <li>
+            ZeroFormatter: 1,408,252 bytes
+          </li>
+        </ul>
+      </p>
+      <p>
+        Impressively, BinaryFormatter is very close to the custom format in size.
+        I'm guessing the slight difference is from storing type information.
+        The larger size of the ZeroFormatter file is almost assuredly from not converting the <code class="language-csharp"><span class="csharp-blue">char</span>[]</code> to UTF-8.
+        It is a trade-off I've considered.
+        With UTF-8 I save some bytes in the serialized format, but I have to allocate for a temporary <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and take the performance hit of conversion.
+      </p>
+    </section>
+  </section>
+  <section>
+    <header>
+    <h3>Hack for .NET Framework</h3>
+    </header>
+    <p>
+      Without <code class="language-csharp"><span class="csharp-teal">Span&lt;<span class="csharp-blue">T</span>&gt;</code>,
+      this method isn't feasible, we have to make do with <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-blue">byte</span>[], <span class="csharp-blue">int</span>, <span class="csharp-blue">int</span>)</code>.
+      How can we convert an arbitrary type to a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>?
+      Unions aren't quite right, if the type's size is larger than a single byte, the <code class="language-csharp">Length</code> property is much too small and the
+      <code class="language-csharp"><span class="csharp-teal">Stream</span></code> methods will complain when they perform bounds checking.
+      Unsafe pointers won't do either, casting to a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> blows up.
+      Using both, we can do some bad things...
+    </p>
+<pre><code class="language-csharp"><span class="csharp-blue">var</span> <span class="csharp-purple">wrapper</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">UnionArrayInt</span> {Typed = <span class="csharp-purple">value</span>};
+<span class="csharp-gold">Write</span>(<span class="csharp-purple">wrapper</span>.Typed, <span class="csharp-purple">wrapper</span>.Bytes);
+
+[<span class="csharp-teal">StructLayout</span>(<span class="csharp-teal">LayoutKind</span>.Explicit)]
+<span class="csharp-blue">public struct</span> <span class="csharp-teal">UnionArrayInt</span>
+{
+    [<span class="csharp-teal">FieldOffset</span>(0)]
+    <span class="csharp-blue">public readonly byte</span>[] Bytes;
+
+    [<span class="csharp-teal">FieldOffset</span>(0)]
+    <span class="csharp-blue">public int</span>[] Typed;
+}
+
+<span class="csharp-blue">public void</span> <span class="csharp-gold">Write</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-teal">T</span>[] <span class="csharp-navy">value</span>, <span class="csharp-blue">byte</span>[] <span class="csharp-navy">bytes</span>)
+    <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">oldLength</span> = <span class="csharp-navy">value</span>.Length;
+    Stream.<span class="csharp-gold">WriteInt32</span>(<span class="csharp-navy">oldLength</span>);
+    
+    <span class="csharp-blue">unsafe</span>
+    {
+        <span class="csharp-blue">fixed</span> (<span class="csharp-teal">T</span>* <span class="csharp-navy">typedPointer</span> = <span class="csharp-navy">value</span>)
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-purple">intPointer</span> = (<span class="csharp-teal">IntPtr</span>*) <span class="csharp-purple">typedPointer</span>;
+            <span class="csharp-purple">try</span>
+            {
+                *(<span class="csharp-navy">intPointer</span> - 1) = <span class="csharp-blue">new</span> <span class="csharp-teal">IntPtr</span>(<span class="csharp-blue">sizeof</span>(<span class="csharp-teal">T</span>) * <span class="csharp-navy">oldLength</span>);
+                Stream.<span class="csharp-gold">Write</span>(<span class="csharp-navy">bytes</span>, 0, <span class="csharp-navy">bytes</span>.Length);
+            }
+            <span class="csharp-purple">finally</span>
+            {
+                *(<span class="csharp-navy">intPointer</span> - 1) = new <span class="csharp-teal">IntPtr</span>(<span class="csharp-navy">oldLength</span>);
+            }
+        }
+    }
+}</code></pre>
+    <p>
+      Unfortunately, you'll have to write a union struct for each type you want to use this way.
+      I wasn't able to create a generic container.
+    </p>
+    <p>
+      The magic part: <code class="language-csharp">*(<span class="csharp-purple">intPointer</span> - 1)</code>
+      <br/>
+      By using pointers to edit the length field of the array, I can trick <code class="language-csharp">Stream</code>'s methods into accepting it as a fake <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>.
+      <br/>
+      It is important to note that I used IntPtr here not as an actual pointer, but as a representative of the word size of the processor. 
+      Otherwise, when 32 bit you'd have to use <code class="language-csharp"><span class="csharp-blue">int</span></code>, while targeting 64 bit would require <code class="language-csharp"><span class="csharp-blue">long</span></code>.
+    </p>
+    <p>
+      This relies on the memory layout of arrays.
+      I don't know what kind of guarantee you can expect that it will always be at the same location.
+      This is truly an example of: <blockquote><em>It works on my PC</em></blockquote>
+    </p>
+  </section>
+  <section>
+    <header>
+      <h3>Concluding thoughts</h3>
+    </header>
+    <p>
+      If you're OK writing a bit of code to create read and write methods, this is a great way to serialize your data.
+      I don't consider that task particularly onerous, the alternatives are either much slower (BinaryFormatter), or require almost as much markup as this does code (ZeroFormatter).
+    </p>
+    <p>
+      It might be nice to re-do the performance testing with a variety of test-cases.
+      I think this method would gain even more ground, as complex structs are processed as a single <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and there's no book-keeping at all.
+    </p>
+  </section>
 </article>
 </main>
 
