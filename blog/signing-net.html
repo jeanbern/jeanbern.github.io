@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143311168-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143311168-1');
+  </script>
+  <title>Signing in .NET</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="Different methods of signing code and assemblies in .NET for Windows."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://jbp.dev/blog/signing-net.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://jbp.dev/#organization",
+            "name": "jbp.dev",
+            "url": "https://jbp.dev/",
+            "sameAs": [
+                "https://www.facebook.com/jbpellerin",
+                "https://www.linkedin.com/in/jean-bernard-pellerin-026bbb23",
+                "https://twitter.com/jeanbpellerin"
+            ],
+            "logo": {
+                "@type": "ImageObject",
+                "@id": "https://jbp.dev/#logo",
+                "url": "https://jbp.dev/img/bird.jpg",
+                "caption": "jbp.dev"
+            },
+            "image": {
+                "@id": "https://jbp.dev/#logo"
+            }
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://jbp.dev/#website",
+            "url": "https://jbp.dev/",
+            "name": "jbp.dev",
+            "publisher": {
+                "@id": "https://jbp.dev/#organization"
+            }/*,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://jbp.dev/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }*/
+        },
+        {
+            "@type": "WebPage",
+            "@id": "https://jbp.dev/blog/signing-net#webpage",
+            "url": "https://jbp.dev/blog/signing-net.html",
+            "inLanguage": "en",
+            "name": "Signing in .NET",
+            "isPartOf": {
+                "@id": "https://jbp.dev/#website"
+            },
+            "about": {
+                "@id": "https://jbp.dev/#organization"
+            },
+            "description": "Different methods of signing code and assemblies in .NET for Windows."
+        }
+    ]
+}
+  </script>
+  <style>
+main section > svg {
+  max-width: 720px;
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>
+      JB's BLOG
+  </h2>
+</header>
+
+<nav>
+  <section>
+    <header>
+      <h2>Breadcrumb</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/" title="jbp.dev - Homepage">Home</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/signing-net.html" title="Signing in .NET">Blog - Signing in .NET</a>
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>DAWG series</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-basics.html" title="Directed Acyclic Word Graphs - Part 1 - The Basics">The Basics</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">First Implementation in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">Reducing DAWG memory footprint</a>
+      </li>
+      <li>
+        Using the DAWG to find spelling errors
+      </li>
+      <li>
+        DAWG performance profiling - part 1
+      </li>
+      <li>
+        Potential DAWG performance improvements
+      </li>
+      <li>
+        Speedy DAWG
+      </li>
+      <li>
+        DAWG performance profiling - part 2
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>Other posts</h2>
+    </header>
+    <ul>
+      <li>
+        <a href="https://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Custom Binary Serialization in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/signing-net.html" title="Signing in .NET">Signing in .NET#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/custom-app-config.html" title="Creating a custom configuration section in .NET">Creating a custom app.config</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/custom-app-config.html" title="Creating a custom configuration section in .NET">Creating a custom app.config</a>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>All about signatures in .NET</h1>
+    <p>
+      Here I will describe the different kinds of signing available for your .NET applications and assemblies as well as when and how to use them.
+    </p>
+  </header>
+  <section id="different-signature-kinds">
+    <header>
+      <h2>
+        Different Kinds of Signatures
+      </h2>
+      <a class="bookmark" href="#different-signature-kinds" id="different-signature-kinds" rel="bookmark"></a>
+      <p>
+        Briefly, there are two different ways you can sign your .NET assemblies in Windows.
+        It's not immediately obvious from the properties tab, so I'm writing an article encompassing a lot of the details.
+      </p>
+    </header>
+    <dl>
+      <dt>
+        Strong Name Signing
+      </dt>
+      <dd>
+        Allows the assembly to be uniquely identified.
+      </dd>
+      <dd>
+       Can be performed on
+        <a title="Asset types and signing" href="https://docs.microsoft.com/en-us/visualstudio/ide/managing-assembly-and-manifest-signing#asset-types-and-signing">
+          executables, assemblies, and manifests</a>.
+      </dd>
+      <dt>
+        Code Signing
+      </dt>
+      <dd>
+        Authenticates the publisher and ensures code integrity.
+      </dd>
+    </dl>
+  </section>
+
+  <hr/> 
+  <article id="strong-naming">
+    <header>
+      <h2>
+        Strong-Naming
+      </h2>
+      <a class="bookmark" href="#strong-naming" rel="bookmark"></a>
+      <a title="Strong-named assemblies" href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/strong-named-assemblies">
+        <cite>Strong-named assemblies</cite>
+      </a>
+      <p>
+        A strong name is the combination of name, version number, culture information (optional), processor architecture (optional), public key, and digital signature.
+        <br/>These characteristics uniquely identify the assembly, providing many benefits.
+      </p>
+    </header>
+   
+   <section id="when-to-strong-name">
+    <header>
+     <h3>
+      When to use a strong-name
+     </h3>
+     <a class="bookmark" href="#when-to-strong-name" rel="bookmark"></a>
+    </header>
+    <ul>
+     <li>
+      <section>
+       <header>
+        <h4>
+         You want to reference it from another strongly-named assembly
+        </h4>
+       </header>
+       <p> 
+        Except for 
+        <a title="Bypass signature verification of trusted assemblies"
+         href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/create-and-use-strong-named-assemblies#bypass-signature-verification-of-trusted-assemblies"
+         >certain full-trust scenarios</a>,
+         strong-named assemblies
+        <a title="Create and use strong-named assemblies"
+         href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/create-and-use-strong-named-assemblies"
+         >can only reference other strongly named assemblies</a>.
+        <br/>
+        If the property wasn't transitive, integrity couldn't be guaranteed.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         You want to reference multiple versions of the same assembly from within the same application
+        </h4>
+       </header>
+       <p>
+        To differentiate between versions, the strong name can be used since it uniquely identifies the assembly.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         You want to load it as 
+         <a title="Application domains and assemblies"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/application-domains#application-domains-and-assemblies"
+          >domain-neutral</a>
+        </h4>
+        
+       </header>
+       <p>
+        This is done when you want multiple applications to share the JIT-compiled code and reduces the memory footprint of the assembly.
+        There are performance trade-offs associated and you shouldn't do this without a reason.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         You want to add it to the 
+         <a title="Global Assembly Cache"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/gac">
+          <abbr title="Global Assembly Cache">GAC</abbr>
+         </a>
+        </h4>
+       </header>
+       <p>
+        The <abbr title="Global Assembly Cache">GAC</abbr> is a machine-wide cache where shared assemblies reside. 
+        Assemblies are generally located in the application directory but there are 
+        <a title="Working with assemblies and the GAC"
+         href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/working-with-assemblies-and-the-gac"
+         >some cases</a>
+        where you might prefer placing them in the <abbr title="Global Assembly Cache">GAC</abbr>.
+       </p>     
+       <ul>
+        <li>To provide a shared location for multiple applications - regardless of domain-neutrality.</li>
+        <li>To prevent users from tampering with the file, as the containing directory is often protected.</li>
+        <li>
+         To provide a backup location for 
+         <a title="How the runtime locates assemblies"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/deployment/how-the-runtime-locates-assemblies"
+          >runtime binding</a>
+         to find the proper assembly.
+        </li>
+        <li>
+         To make use of 
+         <a title="How to create a publisher policy"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/configure-apps/how-to-create-a-publisher-policy"
+          >publisher policy</a>, 
+         which allows you to specify redirects to newer versions of assemblies when you update your application.
+        </li>
+       </ul>
+      </section>
+     </li>
+    </ul>
+   </section>
+   
+   <section id="how-to-strong-name">
+    <header>
+     <h3>
+      How to create a strong-name
+     </h3>
+     <a class="bookmark" href="#how-to-strong-name" rel="bookmark"></a>
+     <a title="How to sign an assembly with a strong name"
+      href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/how-to-sign-an-assembly-with-a-strong-name"
+      ><cite>How to sign an assembly with a strong name</cite></a>
+    </header>
+    <ul>
+     <li>
+      <section>
+       <header>
+        <h4>
+         Using the 
+         <a title="Signing page, project designer"
+          href="https://docs.microsoft.com/en-us/visualstudio/ide/reference/signing-page-project-designer"
+          >Signing tab</a>
+         in the properties screen of your project in Visual Studio.
+        </h4>
+       </header>
+       <p>
+        The checkbox in the bottom half of the screen will enable a drop-down where you can select your .pfk file.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         Using the 
+         <a title="Al.exe (Assembly Linker)"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/tools/al-exe-assembly-linker"
+          >Assembly Linker</a>
+        </h4>
+       </header>
+       <p>
+        I don't think I'll ever use this. It seems to be for pre- visual studio 2008 projects.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         Using attributes in AssemblyInfo.cs
+        </h4>
+       </header>
+       <p>
+        With
+        <a title="System.Reflection.AssemblyKeyFileAttribute"
+         href="https://docs.microsoft.com/en-us/dotnet/api/system.reflection.assemblykeyfileattribute"
+         >AssemblyKeyFileAttribute</a>
+        you can specify a .snk file containing the public/private key-pair.
+       </p>
+       <p>
+        With 
+        <a title="System.Reflection.AssemblyKeyNameAttribute" 
+         href="https://docs.microsoft.com/en-us/dotnet/api/system.reflection.assemblykeynameattribute"
+         >AssemblyKeyNameAttribute</a>
+        you can specify a key container by using the name of a 
+        <a title="Crtyptographic service provider" 
+         href="https://docs.microsoft.com/en-us/windows/desktop/seccrypto/cryptographic-service-providers"
+         >Cryptographic Service Provider</a>.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>
+         <a title="To sign an assembly with a strong name by using the compiler"
+          href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/how-to-sign-an-assembly-with-a-strong-name#to-sign-an-assembly-with-a-strong-name-by-using-the-compiler"
+          >Using compiler options</a>
+        </h4>
+       </header>
+       <p>
+        With the <code>/keyfile</code> option, you can specify your key file. Use a colon between the two: <code>csc ... /keyfile:key.snk</code>
+       </p>
+      </section>
+     </li>
+    </ul>
+   </section>
+   
+   <section id="strong-name-downsides">
+    <header>
+     <h3>
+      Downsides of Strong-Naming
+     </h3>
+     <a class="bookmark" href="#strong-name-downsides" rel="bookmark"></a>
+    </header>
+    <p>A strongly-named assembly cannot reference non-strongly-signed assemblies.</p>
+   </section>
+   
+   <section id="strong-name-best-practices">
+    <header>
+     <h3>
+      Best Practices for strong-naming
+     </h3>
+     <a class="bookmark" href="#strong-name-best-practices" rel="bookmark"></a>
+    </header>
+    <ul>
+     <li>
+      Rather than strongly-naming an assembly or executable, sign the manifest. This avoids the force transitivity of strong-naming.
+     </li>
+     <li>
+      If you must sign assemblies, avoid those that are not shared, as signing makes dependency management more cumbersome.
+     </li>
+     <li>
+      Because strong names do not expire, extra care must be taken to avoid compromising private keys.
+     </li>
+     <li>
+      Do not use the same pfx file to sign strong-names and to sign code. Because <a title="Strong Name Scenario" href="https://docs.microsoft.com/en-us/dotnet/framework/app-domains/create-and-use-strong-named-assemblies#strong-name-scenario">strong-name signatures do not establish trust</a>, you can use a private key that is not password protected and avoid some encryption overhead.
+     </li>
+    </ul>
+   </section>
+   
+  </article>
+
+  <hr/>
+  <article id="code-signing">
+   <header>
+    <h2>Code Signing</h2>
+    <a class="bookmark" href="#code-signing" rel="bookmark"></a>
+    <a title="Introduction to code signing"
+     href="https://docs.microsoft.com/en-us/windows/desktop/seccrypto/cryptography-tools#introduction-to-code-signing"
+     ><cite>Introduction to code signing</cite></a>
+    <p>
+     Code signing embeds a digital signature into the binary itself. 
+     It authenticates the publisher of the code, while also guaranteeing the integrity of the file by verifying it has not been modified since it was signed.
+     
+     Sometimes called 
+     <a title="SignTool and the Authenticode Process"
+      href="https://docs.microsoft.com/en-us/windows/desktop/seccrypto/time-stamping-authenticode-signatures#signtool-and-the-authenticode-process"
+      >authenticode</a>.
+    </p>
+   </header>
+   
+   <section>
+    <header id="signed-code-definitions">
+     <h3>Definitions</h3>
+     <a class="bookmark" href="#signed-code-definitions" rel="bookmark"></a>
+     <a title="Code Signing Best Practices" 
+      href="http://download.microsoft.com/download/a/f/7/af7777e5-7dcd-4800-8a0a-b18336565f5b/best_practices.doc"
+      ><cite>Code Signing Best Practices</cite></a>
+    </header>
+    <dl>
+     <dt>
+      Digital Signature
+     </dt>
+     <dd>
+      To create a digital signature, the cryptographic hash of a file is signed with the publisher's private key. 
+      This binds the publisher's identity to the file and provides a way to detect modifications to the data.
+     </dd>
+     
+     <dt>
+      Digital Certificate
+     </dt>
+     <dd>
+      A digital certificate is a credential binding an entity to a public/private key pair.
+     </dd>
+     
+     <dt>
+      Certificate Authority
+      <a title="What are CAs?"
+       href="https://wiki.mozilla.org/CA/FAQ"
+       ><cite>What are CAs?</cite></a>
+     </dt>
+     <dd>
+      A <abbr title="Certificate Authority">CA</abbr> is a broker of trust who can issue certificates to verified third parties.
+      Their certificate can be self-signed or even signed by another <abbr title="Certificate Authority">CA</abbr>.
+     </dd>
+     
+     <dt>
+      Authenticode
+     </dt>
+     <dd>
+      Embeds a digital signature in the non-executable portion of a file.
+     </dd>
+     <dd>
+      Can be applied to a variety of file formats, including
+      <ul>
+       <li>
+        Portable executables: .exe, .dll, .sys, .ocx
+       </li>
+       <li>
+        Cabinet: .cab
+       </li>
+       <li>
+        Windows Installer: .msi, .msp
+       </li>
+      </ul>
+     </dd>
+     
+     <dt>
+      Timestamps
+      <a title="Best Practices for Timestamping"
+       href="https://www.digicert.com/blog/best-practices-timestamping/"
+       ><cite>Best Practices for Timestamping</cite></a>
+     </dt>
+     <dd>
+      Certificates usually have an expiration period. 
+      To allow software to continue to be used for longer periods of time, you can add a timestamp to your digital signature.
+      If a digital signature's signed hash contains a timestamp issued from a <abbr title="Timestamp Authority">TSA</abbr> before the certificate's expiration date, 
+      Windows will consider the signature to be valid even if the certificate has since expired.
+     </dd>
+     
+     <dt>
+      Chain of trust
+     </dt>
+     <dd>
+      A chain of trust is a series of validation steps that allow trust to be established without needing to maintain a list of all trusted publishers from the start.
+      By maintaining one or more trusted entities at the root level, then allowing these to delegate trust, you obtain a chain effect which allows independent publishers to demonstrate their trustworthiness.
+     </dd>
+     <dd>
+      In this example, the provider of your operating system software will be the trust anchor, Microsoft.
+      Microsoft signs a certificate for a software publishing company, say ACME.
+      I verify my identity with ACME and they provide me with a signed certificate.
+      When my software runs on your PC, it will validate that my certificate is signed by ACME, whose certificate is signed by Microsoft, which is trusted at the root level.
+      Therefore, the chain has been verified and my software will be allowed to run.
+     </dd>
+    
+     <dt>
+      Self-signed certificate
+     </dt>
+     <dd>
+      Developers can create their own sel-signed certificate which is not issued by a CA and is signed by it's own private key.
+      This allows the developer to operate independently from any infrastructure components in the development environment and requires no overhead.
+     </dd>
+     
+     <dt>
+      Commercially issued digital certificate
+     </dt>
+     <dd>
+      A certificate issued by a Certificate Authority comes with several advantages. 
+      The <abbr title="Public Key Infrastructure">PKI</abbr> is already set-up and clients will most likely already include the issuer in their chain of trust.
+     </dd>
+     <dd>
+      For test-signing, a certificate issued in-house can be a good middle-ground.
+     </dd>
+    </dl>
+   </section>
+   
+   <section id="when-to-sign-code">
+    <header>
+     <h3>When to use code signing</h3>
+     <a class="bookmark" href="#when-to-sign-code" rel="bookmark"></a>
+    </header>
+    <p>
+     Code signing allows for client computers to better determine trust relationships.
+     A signed application with a trusted certificate chain is understood to be safer than an application without it.
+     Certain types of drivers must be signed to be installed.
+     Computer security policies may mandate or enforce that applications be signed before allowing them to run.
+    </p>
+   </section>
+   
+   <section id="how-to-sign-code">
+    <header>
+     <h3>How to sign code</h3>
+     <a class="bookmark" href="#how-to-sign-code" rel="bookmark"></a>
+    </header>
+    
+    <ol>
+     <li>
+      <section>
+       <header>
+        <h4>Acquire a code-signing certificate</h4>
+       </header>
+       <p>
+        You can purchase a certificate from a CA and use that for production releases, but for development you should create a self-signed certificate.
+       </p>
+       <p>
+       First, create a root signing certificate. 
+       With this we will sign the code-signing certificate. 
+       This lets us have a long-term certificate and create short-lived ones as time goes on.
+       In an enterprise setting, infrastructure may have created their own root signing certificate and assign development code-signing certificates to developers.
+</p><pre><code class="language-powershell"><span class="comment">#create your new root certificate</span>
+<span class="variable">$rootCert</span> = <span class="command">New-SelfSignedCertificate</span> <span class="command-parameter">-CertStoreLocation</span> <span class="command-argument">cert:\CurrentUser\My</span> <span class="command-parameter">-DnsName</span> <span class="string">"RootCA"</span> <span class="command-parameter">-TextExtension</span>  @(<span class="string">"2.5.29.37={text}1.3.6.1.5.5.7.3.1,1.3.6.1.5.5.7.3.2"</span>) <span class="command-parameter">-KeyUsage</span> <span class="command-argument">CertSign</span>, <span class="command-argument">DigitalSignature</span>
+
+<span class="comment">#enter a password</span>
+[<span class="type">System.Security.SecureString</span>]<span class="variable">$rootcertPassword</span> = <span class="command">ConvertTo-SecureString</span> <span class="command-parameter">-String</span> <span class="string">"password"</span> <span class="command-parameter">-Force</span> <span class="command-parameter">-AsPlainText</span>
+<span class="comment">#browse to the certificate</span>
+[<span class="type">String</span>]<span class="variable">$rootCertPath</span> = <span class="command">Join-Path</span> <span class="command-parameter">-Path</span> <span class="string">"cert:\CurrentUser\My\"</span> <span class="command-parameter">-ChildPath</span> <span class="string">"</span>$(<span class="string">$rootcert</span>.Thumbprint)<span class="string">"</span>
+<span class="comment">#export the private key</span>
+<span class="command">Export-PfxCertificate</span> <span class="command-parameter">-Cert</span> <span class="variable">$rootCertPath</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\RootCA.pfx"</span> <span class="command-parameter">-Password</span> <span class="variable">$rootcertPassword</span>
+<span class="comment">#export the certificate</span>
+<span class="command">Export-Certificate</span> <span class="command-parameter">-Cert</span> <span class="variable">$rootCertPath</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\RootCA.crt"</span>
+
+<span class="comment">#Install the certificate to the Trusted Root Certification Authorities Store (requires running as admin)</span>
+<span class="command">Import-Certificate</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\RootCA.crt"</span> <span class="command-parameter">-CertStoreLocation</span> <span class="string">"Cert:\LocalMachine\Root"</span> <span class="command-parameter">-Verbose</span></code></pre>
+       <p>
+        Once that is complete, you can create your own signing certificates
+       </p>
+<pre><code class="language-powershell"><span class="comment">#create your signing certificate</span>
+<span class="variable">$testCert</span> = <span class="command">New-SelfSignedCertificate</span> <span class="command-parameter">-CertStoreLocation</span> <span class="command-argument">Cert:\LocalMachine\My</span> <span class="command-parameter">-DnsName</span> <span class="string">"SignedByRootCA"</span> <span class="command-parameter">-KeyExportPolicy</span> <span class="command-argument">Exportable</span> <span class="command-parameter">-KeyLength</span> <span class="command-argument">2048</span> <span class="command-parameter">-KeyUsage</span> <span class="command-argument">DigitalSignature</span>, <span class="command-argument">KeyEncipherment</span> <span class="command-parameter">-Signer</span> <span class="variable">$rootCert</span> <span class="command-parameter">-KeySpec</span> <span class="command-argument">Signature</span>
+
+<span class="comment">#export as before</span>
+[<span class="type">String</span>]<span class="variable">$testCertPath</span> = <span class="command">Join-Path</span> <span class="command-parameter">-Path</span> <span class="string">"cert:\LocalMachine\My\"</span> <span class="command-parameter">-ChildPath</span> <span class="string">"</span>$(<span class="string">$testCert.Thumbprint</span>)<span class="string">"</span>
+<span class="command">Export-PfxCertificate</span> <span class="command-parameter">-Cert</span> <span class="variable">$testCertPath</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\testcert.pfx"</span> <span class="command-parameter">-Password</span> <span class="variable">$rootcertPassword</span> <span class="command-parameter">-ChainOption</span> <span class="command-argument">EndEntityCertOnly</span>
+<span class="command">Export-Certificate</span> <span class="command-parameter">-Cert</span> <span class="variable">$testCertPath</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\testcert.crt"</span></code></pre>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>Sign assembly code</h4>
+       </header>
+       <p>
+        Now we can sign the assembly with the powershell command 
+        <a title="Set-AuthenticodeSignature"
+         href="https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-authenticodesignature"
+        >Set&#8209;AuthenticodeSignature</a>. 
+        Note that the last 2 parameters are optional. 
+        <wbr><code class="language-powershell"><span class="command-parameter">&#8209;IncludeChain</span> <span class="command-argument">All</span></code> will include all of the signatures in the trust chain.
+        <wbr><code class="language-powershell"><span class="command-parameter">&#8209;TimestampServer</span> <span class="string">"..."</span></code> adds a timestamp as described in the definition section.
+</p><pre><code class="language-powershell"><span class="variable">$cert</span> = <span class="command">Get-PfxCertificate</span> <span class="command-parameter">-FilePath</span> <span class="string">"D:\testcert.pfx"</span>
+<span class="command">Set-AuthenticodeSignature</span> <span class="command-parameter">-FilePath</span> <span class="command-argument">D:\library1.dll</span> <span class="command-parameter">-Certificate</span> <span class="variable">$cert</span> <span class="command-parameter">-IncludeChain</span> <span class="command-argument">All</span> <span class="command-parameter">-TimestampServer</span> <span class="string">"http://timestamp.digicert.com"</span></code></pre>
+       
+      </section>
+     </li>
+    </ol>
+   </section>
+   
+   <section id="code-signing-best-practices">
+    <header>
+     <h3>Best Practices for code signing</h3>
+     <a class="bookmark" href="#code-signing-best-practices" rel="bookmark"></a>
+    </header>
+    <ul>
+     <li>
+      <section>
+       <header>
+        <h4>Test-sign during development</h4>
+        <p>Software should be tested to ensure it installs and functions properly with a signature before it is sent for final signing and packaging.</p>
+       </header>
+       <p>
+        During testing, an application should be digitally signed with a certificate trusted only within the test environment.
+        This will:
+       </p>
+       <ul>
+        <li>
+         Ensure that accidentally leaked pre-release software is not signed with the enterprise certificate.
+        </li>
+        <li>
+         Decrease risks of the release certificate being compromised by decreasing the proliferation of the private key.
+        </li>
+        <li>
+         Minimize the chance of accidentally signing code that should not be signed.
+        </li>
+        <li>
+         Allow for developers to have access to a certificate with which they can sign code with no delay. 
+         This avoids the turnover time of having an infrastructure department sign code for the developers after every change.
+        </li>
+        <li>
+         In the event of a virus or compromised certificate, there is no need for a revocation of a public facing certificate.
+        </li>
+       </ul>
+       <p>
+        During development and testing, skip the timestamp step when digitally signing.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>Use a code-signing service for production</h4>
+        <p>To protect the private key of a release certificate, set up a process that reduces the need to distribute it.<p>
+       </header>
+       <p>
+        Implement a submission and approval process to prevent the signing of unapproved or malicious code. 
+        By separating responsibilities between submitters, approvers, and signers, you reduce the risk of a rogue employee causing damage to your organization.
+        Logging all such activity for auditing purposes allows examination and tracking of individuals and accountability if incidents do occur.
+        Microsoft recommends that software be virus scanned before being signed as part of the release process.
+       </p>
+      </section>
+     </li>
+     <li>
+      <section>
+       <header>
+        <h4>Use a CA issued certificate for release signing</h4>
+       </header>
+       <p>
+        This way you can make use of existing PKI and have your software trusted by users without the need to mess with certificate stores.
+       </p>
+      </section>
+     </li>
+    </ul>
+   </section>
+
+  </article>
+  <hr/>
+
+  <section id="common-issues">
+   <header>
+    <h2>Common Issues</h2>
+    <a class="bookmark" href="#common-issues" rel="bookmark"></a>
+   </header>
+   <ul>
+    <li>
+     <section>
+      <header>
+       <h3>
+        Invalid provider type specified
+       </h3>
+      </header>
+      <p>
+       The tools used by Visual Studio support the <abbr title="Cryptographic Service Provider">CSP</abbr> library, but do not yet support the <abbr title="Cryptography Next Generation">CNG</abbr> library. By default, <code class="language-powershell"><span class="command">Export&#8209;PfxCertificate</span></code> will use a legacy <abbr title="Cryptographic Service Provider">CSP</abbr>. You must include the parameter <code class="language-powershell"><span class="command-parameter">&#8209;KeySpec</span></code> with the argument: <code class="language-powershell"><span class="command-argument">Signature</span></code>.
+      </p>
+      <p>
+       Note that this is a requirement only for the private key being used to sign your code. It doesn't matter what parameters were used to create root certificates.
+      </p>
+     </section>
+    </li>
+    <li>
+     <section>
+      <header>
+       <h3>Cannot import the following key file:</h3>
+       <p>The key file may be password protected. To correct this, try to import the certificate again or manually install the certificate to the Strong Name CSP with the following key container name:</p>
+      </header>
+      <p>
+       The solution to this issue is the same as the previous one. You might see this when strong-naming with a certificate that otherwise works with code-signing. In that case, the certificate was likely created with <code 
+  class="language-powershell"><span class="command-parameter">&#8209;KeySpec</span> <span class="command-argument">KeyExchange</span></code>
+      </p>
+     </section>
+    </li>
+    <li>
+     <section>
+      <header>
+       <h3>
+        Cannot find the certificate and private key for decryption
+       </h3>
+      </header>
+      <p>
+       To be used by Visual Studio to sign code, a certificate 
+       <a title="Signing Assemblies" href="https://docs.microsoft.com/en-us/previous-versions/aa730868(v=vs.80)#signing-assemblies">
+        cannot include certificate chaining information</a>.
+       To ensure this is the case, when running
+       <code class="language-powershell"><span class="command">Export&#8209;PfxCertificate</span></code>
+       include the parameter 
+       <code class="language-powershell"><span class="command-parameter">&#8209;ChainOption</span></code>
+       with the argument: <code class="language-powershell"><span class="command-argument">EndEntityCertOnly</span></code>.
+      </p>
+      <p>
+       As in the previous issue, this is a requirement only for the private key being used to sign your code. It doesn't matter what parameters were used to create root certificates.
+      </p>
+     </section>
+    </li>
+    <li>
+     <section>
+      <header>
+       <h3>
+        Friendly assembly reference is invalid. Strong-name signed assemblies must specify a public key in their InternalsVisibleTo declarations.
+       </h3>
+      </header>
+      <p>
+       Because strongly-named assemblies are identified by their strong-name, all of that information must be referenced together. You will need something like: 
+      </p>
+      <pre><code class="language-csharp">[<span class="csharp-blue">assembly</span>: <span class="csharp-teal">InternalsVisibleTo</span>(<span class="csharp-brown">"ProjectwiseApi.Tests, PublicKey=..."</span>)]</code></pre>
+      <p>
+        The hex value for PublicKey can be obtained with <a title="Sn.exe (Strong Name Tool)" href="https://docs.microsoft.com/en-us/dotnet/framework/tools/sn-exe-strong-name-tool">Sn.exe</a>. 
+      </p>
+      <pre><code class="language-powershell"><span class="command">Sn</span> <span class="command-parameter">-Tp</span> <span class="string">"name of assembly file"</span></code></pre>
+     </section>
+    </li>
+   </ul>
+  </section>
+</article>
+</main>
+
+<aside>
+  <figure>
+    <img src="https://jbp.dev/img/bird-small.jpg" alt="You caught me, I'm not a bird."/>
+    <figcaption>Jean-Bernard Pellerin</figcaption>
+  </figure>
+  <p>
+    Contact:
+    I can be reached <a href="mailto:jbp@jbp.dev">by email</a>.
+  </p>
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>  
+
+</body>
+</html>

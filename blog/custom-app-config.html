@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143311168-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143311168-1');
+  </script>
+  <title>Creating a custom configuration section in .NET</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="How to create a custom type for app.config including the classes, xsd schema, and linking it all together in Visual Studio."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://jbp.dev/blog/custom-app-config.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://jbp.dev/#organization",
+            "name": "jbp.dev",
+            "url": "https://jbp.dev/",
+            "sameAs": [
+                "https://www.facebook.com/jbpellerin",
+                "https://www.linkedin.com/in/jean-bernard-pellerin-026bbb23",
+                "https://twitter.com/jeanbpellerin"
+            ],
+            "logo": {
+                "@type": "ImageObject",
+                "@id": "https://jbp.dev/#logo",
+                "url": "https://jbp.dev/img/bird.jpg",
+                "caption": "jbp.dev"
+            },
+            "image": {
+                "@id": "https://jbp.dev/#logo"
+            }
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://jbp.dev/#website",
+            "url": "https://jbp.dev/",
+            "name": "jbp.dev",
+            "publisher": {
+                "@id": "https://jbp.dev/#organization"
+            }/*,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://jbp.dev/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }*/
+        },
+        {
+            "@type": "WebPage",
+            "@id": "https://jbp.dev/blog/custom-app-config.html#webpage",
+            "url": "https://jbp.dev/blog/custom-app-config.html",
+            "inLanguage": "en",
+            "name": "Creating a custom configuration section in .NET",
+            "isPartOf": {
+                "@id": "https://jbp.dev/#website"
+            },
+            "about": {
+                "@id": "https://jbp.dev/#organization"
+            },
+            "description": "How to create a custom type for app.config including the classes, xsd schema, and linking it all together in Visual Studio."
+        }
+    ]
+}
+  </script>
+  <style>
+main section > svg {
+  max-width: 720px;
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>
+      JB's BLOG
+  </h2>
+</header>
+
+<nav>
+  <section>
+    <header>
+      <h2>Breadcrumb</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/" title="jbp.dev - Homepage">Home</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/custom-app-config.html" title="Creating a custom configuration section in .NET">Blog - Creating a custom app.config</a>
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>DAWG series</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-basics.html" title="Directed Acyclic Word Graphs - Part 1 - The Basics">The Basics</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">First Implementation in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">Reducing DAWG memory footprint</a>
+      </li>
+      <li>
+        Using the DAWG to find spelling errors
+      </li>
+      <li>
+        DAWG performance profiling - part 1
+      </li>
+      <li>
+        Potential DAWG performance improvements
+      </li>
+      <li>
+        Speedy DAWG
+      </li>
+      <li>
+        DAWG performance profiling - part 2
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>Other posts</h2>
+    </header>
+    <ul>
+      <li>
+        <a href="https://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Custom Binary Serialization in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/signing-net.html" title="Signing in .NET">Signing in .NET#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/custom-app-config.html" title="Creating a custom configuration section in .NET">Creating a custom app.config</a>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>How to create a custom type for app.config and web.config in .NET</h1>
+  </header>
+  
+  <p>
+    We are creating a configuration for a crazy cat lady.
+  </p>
+  <ol>
+    <li>
+      <section>
+        <header>
+          <h3>Reference System.Configuration in your project</h3>
+        </header>
+        <p>
+          This contains many of the classes and attributes we will be using.
+        </p>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Create a class to represent individual cats, one to represent a collection of cats, and finally one for the lady.</h3>
+        </header>
+        <ul>
+          <li>
+            <section>
+              <header>
+                <h4>The <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.configurationelement">ConfigurationElement</a> class</h4>
+              </header>
+              <p>
+                Represents a configuration element within a configuration file. 
+                We can define attributes and children by using the
+                <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.configurationpropertyattribute">
+                  ConfigurationProperty
+                </a>
+                attribute on member properties.
+              </p>
+              <p>
+                Here we define a cat type with three attribute properties: name, color, and age.
+              </p>
+              <p>
+                We demonstrate some of the features of ConfigurationPropertyAttribute, marking the latter two as optional, and giving age a default.
+              </p>
+<pre><code class="language-csharp"><span class="csharp-blue">using</span> System.Configuration;
+<span class="csharp-blue">namespace</span> CatLadyDemo
+{
+    <span class="csharp-blue">public class</span> <span class="csharp-teal">CatConfiguration</span> : <span class="csharp-teal">ConfigurationElement</span>
+    {
+        <span class="csharp-blue">private const string</span> NameKey = <span class="csharp-brown">"name"</span>;
+        <span class="csharp-blue">private const string</span> ColorKey = <span class="csharp-brown">"color"</span>;
+        <span class="csharp-blue">private const string</span> AgeKey = <span class="csharp-brown">"age"</span>;
+        <span class="csharp-blue">private const string</span> NoAgeSpecified = -1;
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(NameKey, IsRequired = <span class="csharp-blue">true</span>)]
+        <span class="csharp-blue">public string</span> XmlNamespace =&gt; (<span class="csharp-blue">string</span>) <span class="csharp-blue">this</span>[NameKey];
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(ColorKey, IsRequired = <span class="csharp-blue">false</span>)]
+        <span class="csharp-blue">public string</span> Name =&gt; (<span class="csharp-blue">string</span>) <span class="csharp-blue">this</span>[ColorKey];
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(AgeKey, IsRequired = <span class="csharp-blue">false</span>, DefaultValue = NoAgeSpecified)]
+        <span class="csharp-blue">public int</span> Age =&gt; (<span class="csharp-blue">int</span>) <span class="csharp-blue">this</span>[AgeKey];
+    }
+}</code></pre>
+            </section>
+          </li>
+          <li>
+            <section>
+              <header>
+                <h4>The <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.configurationelementcollection">ConfigurationElementCollection</a> class</h4>
+              </header>
+              <p>
+                Represents a configuration element containing a collection of child elements. 
+                One important thing to note is that it's children must be uniquely identifiable. 
+                The GetElementKey function is responsible for determining how to derive a key from a child element.
+              </p>
+              <p>
+                This will be the class representing the many cats of the crazy cat lady.
+              </p>
+              <p>
+                The 
+                <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.configurationcollectionattribute">
+                  ConfigurationCollectionAttribute</a>'s
+                AddItemName parameter defines the name of each entry in the collection.
+              </p>
+              <p>
+              <p>
+                Had we left it blank, the 
+                <code class="language-xml"><span class="csharp-brown">cats</span></code> element's children would be 
+                <code class="language-xml"><span class="csharp-brown">add</span></code>, this way they are 
+                <code class="language-xml"><span class="csharp-brown">cat</span></code> elements instead.
+              </p>
+              <p>
+                We also declare that each cat's name is a unique key identifying them.
+              </p>
+<pre><code class="language-csharp"><span class="csharp-blue">using</span> System.Configuration;
+<span class="csharp-blue">namespace</span> CatLadyDemo
+{
+    [<span class="csharp-teal">ConfigurationCollection</span>(<span class="csharp-blue">typeof</span>(<span class="csharp-teal">CatConfiguration</span>), AddItemName = CatKey)]
+    <span class="csharp-blue">public class</span> <span class="csharp-teal">CatConfigurationCollection</span> : <span class="csharp-teal">ConfigurationElementCollection</span>
+    {
+        <span class="csharp-blue">private const string</span> CatKey = <span class="csharp-brown">"cat"</span>;
+
+        <span class="csharp-blue">protected override</span> <span class="csharp-teal">ConfigurationElement</span> CreateNewElement()
+        {
+            <span class="csharp-blue">return new</span> <span class="csharp-teal">CatConfiguration</span>();
+        }
+
+        <span class="csharp-blue">protected override object</span> GetElementKey(<span class="csharp-teal">ConfigurationElement</span> element)
+        {
+            <span class="csharp-blue">return</span> ((<span class="csharp-teal">CatConfiguration</span>) element).Name;
+        }
+    }
+}</code></pre>
+            </section>
+          </li>
+          <li>
+            <section>
+              <header>
+                <h3>The <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.configurationsection">ConfigurationSection</a> class</h3>
+              </header>
+                <p>
+                  Represents a section within a configuration file.
+                </p>
+                <p>
+                  The topmost level of our configurations, this class represents the crazy cat lady.
+                </p>
+                <p>
+                  Whereas CatConfiguration used ConfigurationPropertyAttribute to define attributes, here we use it for attributes and a child element.
+                </p>
+                <p>
+                  Because we are going to define an xml schema, we add an attribute named xmlns.
+                  This is necessary because in the App.config we use xmlns to specify which schema <code class="language-xml"><span class="csharp-brown">catLady</span></code> comes from.
+                  Omitting a corresponding backing variable breaks deserialization, so we include it.
+                </p>
+<pre><code class="language-csharp">
+<span class="csharp-blue">using</span> System.Configuration;
+<span class="csharp-blue">namespace</span> CatLadyDemo
+{
+    <span class="csharp-blue">public class</span> <span class="csharp-teal">CatLadyConfigurationSection</span> : <span class="csharp-teal">ConfigurationSection</span>
+    {
+        <span class="csharp-blue">private const string</span> XmlnsKey = <span class="csharp-brown">"xmlns"</span>;
+        <span class="csharp-blue">private const string</span> NameKey = <span class="csharp-brown">"name"</span>;
+        <span class="csharp-blue">private const string</span> CatsKey = <span class="csharp-brown">"cats"</span>;
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(XmlnsKey, IsRequired = <span class="csharp-blue">false</span>)]
+        <span class="csharp-blue">public string</span> XmlNamespace =&gt; (<span class="csharp-blue">string</span>) <span class="csharp-blue">this</span>[XmlnsKey];
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(NameKey, IsRequired = <span class="csharp-blue">true</span>)]
+        <span class="csharp-blue">public string</span> Name =&gt; (<span class="csharp-blue">string</span>) <span class="csharp-blue">this</span>[NameKey];
+
+        [<span class="csharp-teal">ConfigurationProperty</span>(CatsKey, IsRequired = <span class="csharp-blue">true</span>)]
+        <span class="csharp-blue">public</span> <span class="csharp-teal">CatConfigurationCollection</span> Cats =&gt; (<span class="csharp-teal">CatConfigurationCollection</span>) <span class="csharp-blue">this</span>[CatsKey];
+    }
+}</code></pre>
+          </li>
+        </ul>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Create an xml schema for your configuration. (Optional)</h3>
+        </header>
+        <p>
+          This gets rid of the Visual Studio message <em>Could not find schema information for the element 'catLady'.</em>
+          It also provides auto-completion tips and will notify users if anything is missing.
+        </p>
+<pre><code class="language-xml"><span class="csharp-blue">&lt;?</span><span class="csharp-brown">xml</span> <span class="csharp-red">version</span>="<span class="csharp-blue">1.0</span>" <span class="csharp-red">encoding</span>="<span class="csharp-blue">utf-8</span>" <span class="csharp-blue">?&gt;</span>
+<span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:schema</span>
+    <span class="csharp-red">xmlns:xs</span>="<span class="csharp-blue">http://www.w3.org/2001/XMLSchema</span>"
+    <span class="csharp-red">xmlns</span>="<span class="csharp-blue">https://jbp.dev/CatLadySchema</span>"
+    <span class="csharp-red">targetNamespace</span>="<span class="csharp-blue">https://jbp.dev/CatLadySchema</span>"
+    <span class="csharp-red">elementFormDefault</span>="<span class="csharp-blue">qualified</span>"<span class="csharp-blue">&gt;</span>
+
+    <span class="csharp-blue">&lt;!--</span> <span class="csharp-green">The elements that can appear in a document</span> <span class="csharp-blue">--&gt;</span>
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:element</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catLady</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">catLadyType</span>"<span class="csharp-blue">/&gt;</span>
+
+    <span class="csharp-blue">&lt;!--</span> <span class="csharp-green">Type definitions</span> <span class="csharp-blue">--&gt;</span>
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:complexType</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catLadyType</span>"<span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:sequence</span><span class="csharp-blue">&gt;</span>
+            <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:element</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">cats</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">catListType</span>" <wbr/><span class="csharp-red">minOccurs</span>="<span class="csharp-blue">1</span>" <wbr/><span class="csharp-red">maxOccurs</span>="<span class="csharp-blue">1</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:sequence</span><span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:attribute</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">name</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">xs:string</span>" <wbr/><span class="csharp-red">use</span>="<span class="csharp-blue">required</span>"<span class="csharp-blue">/&gt;</span>
+    <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:complexType</span><span class="csharp-blue">&gt;</span>
+
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:complexType</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catListType</span>"<span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;!--</span> <span class="csharp-green">If she has fewer than 3 cats is she really a crazy cat lady?</span> <span class="csharp-blue">--&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:sequence</span><span class="csharp-blue">&gt;</span>
+            <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:element</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">cat</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">catType</span>" <wbr/><span class="csharp-red">minOccurs</span>="<span class="csharp-blue">4</span>" <wbr/><span class="csharp-red">maxOccurs</span>="<span class="csharp-blue">unbounded</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:sequence</span><span class="csharp-blue">&gt;</span>
+    <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:complexType</span><span class="csharp-blue">&gt;</span>
+
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:complexType</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catType</span>"<span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:attribute</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">name</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">xs:string</span>" <wbr/><span class="csharp-red">use</span>="<span class="csharp-blue">required</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:attribute</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">color</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">xs:string</span>" <wbr/><span class="csharp-red">use</span>="<span class="csharp-blue">optional</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:attribute</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">age</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">xs:int</span>" <wbr/><span class="csharp-red">use</span>="<span class="csharp-blue">optional</span>"<span class="csharp-blue">/&gt;</span> 
+    <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:complexType</span><span class="csharp-blue">&gt;</span>
+<span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:schema</span><span class="csharp-blue">&gt;</span>
+</code></pre>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Point the App.config to your new schema (Optional)</h3>
+        </header>
+        <p>
+          With the App.config open, go to the properties tab and put your mouse in the box for the Schemas property.
+        </p>
+        <p>
+          Click the ... button that appears on the right. 
+        </p>
+        <p>
+          This pops up the Schemas window, add and enable your new xsd file to the list. It might already be in there but not checked.
+        </p>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Declare your ConfigurationSection in the App.config</h3>
+        </header>
+          <p>
+            In your App.config, add your element as a child of the <code class="language-xml"><span class="csharp-brown">configSections</span></code> element:
+          </p>
+<pre><code class="language-xml"><span class="csharp-blue">&lt;</span><span class="csharp-brown">section</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catLady</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">CatLadyDemo.CatLadyConfigurationSection, CatLadyDemo</span>"<span class="csharp-blue">/&gt;</span></code></pre>
+          <p>
+            If you signed your assembly, you'll need more information in your type definition, including the PublicKeyToken. You can learn how to obtain it <a href="https://blogs.msdn.microsoft.com/kaevans/2008/06/18/getting-public-key-token-of-assembly-within-visual-studio/" title="Getting the public key token of an assembly within visual studio.">on msdn</a>.
+          </p>
+<pre><code class="language-xml"><span class="csharp-blue">&lt;</span><span class="csharp-brown">section</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">catLady</span>" <wbr/><span class="csharp-red">type</span>="<span class="csharp-blue">CatLadyDemo.CatLadyConfigurationSection, CatLadyDemo, Version=1.0.0.0, Culture=neutral, PublicKeyToken=487a851583594efc</span>"<span class="csharp-blue">/&gt;</span></pre></code>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Add your ConfigurationSection to the App.config</h3>
+        </header>
+        <p>
+          Add your section as a child of the <code class="language-xml"><span class="csharp-brown">configuration</span></code> element:
+        </p>
+<pre><code class="language-xml"><span class="csharp-blue">&lt;</span><span class="csharp-brown">catLady</span>
+    <span class="csharp-red">name</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Chelsea</span>"
+    <span class="csharp-red">xmlns</span><span class="csharp-blue">=</span>"<span class="csharp-blue">https://jbp.dev/CatLadySchema</span>"<span class="csharp-blue">&gt;</span>
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">cats</span><span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">cat</span> <wbr/><span class="csharp-red">name</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Smokey</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">cat</span> <wbr/><span class="csharp-red">name</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Garfield</span>" <wbr/><span class="csharp-red">color</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Tabby</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">cat</span> <wbr/><span class="csharp-red">name</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Furby</span>" <wbr/><span class="csharp-red">age</span><span class="csharp-blue">=</span>"<span class="csharp-blue">3</span>"<span class="csharp-blue">/&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">cat</span> <wbr/><span class="csharp-red">name</span><span class="csharp-blue">=</span>"<span class="csharp-blue">Vanilla</span>" <wbr/><span class="csharp-red">age</span><span class="csharp-blue">=</span>"<span class="csharp-blue">5</span>" <wbr/><span class="csharp-red">color</span><span class="csharp-blue">=</span>"<span class="csharp-blue">White</span>"<span class="csharp-blue">/&gt;</span>
+    <span class="csharp-blue">&lt;/</span><span class="csharp-brown">cats</span><span class="csharp-blue">&gt;</span>
+<span class="csharp-blue">&lt;/</span><span class="csharp-brown">catLady</span><span class="csharp-blue">&gt;</span></code></pre>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>Accessing your configuration section in code.</h3>
+        </header>
+<pre><code class="language-csharp"><span class="csharp-blue">using</span> System;
+<span class="csharp-blue">using</span> System.Configuration;
+
+<span class="csharp-blue">namespace</span> CatLadyDemo
+{
+    <span class="csharp-blue">public class</span><span class="csharp-teal"> Program</span>
+    {
+        <span class="csharp-blue">private static</span> CatLadyConfigurationSection GetConfig()
+        {
+            <span class="csharp-blue">return</span> (CatLadyConfigurationSection) ConfigurationManager.GetSection(<span class="csharp-brown">"catLady"</span>)
+        }
+
+        <span class="csharp-blue">public static void</span> Main(<span class="csharp-blue">string</span>[] args)
+        {
+            <span class="csharp-blue">var</span> x = GetConfig();
+            <span class="csharp-teal">Console</span>.WriteLine(x.Name);
+            <span class="csharp-blue">foreach</span>(<span class="csharp-blue">var</span> catElement <span class="csharp-blue">in</span> x.Cats)
+            {
+                <span class="csharp-blue">var</span> cat = (<span class="csharp-blue">CatConfiguration</span>) catElement;
+                <span class="csharp-blue">var</span> color = <span class="csharp-blue">string</span>.IsNullOrEmpty(cat.Color) ? <span class="csharp-brown">""</span> : <span class="csharp-brown">" color:"</span> + cat.Color;
+                <span class="csharp-blue">var</span> age = cat.Age == <span class="csharp-teal">CatConfiguration</span>.NoAgeSpecified ? <span class="csharp-brown">""</span> : <span class="csharp-brown">" age:"</span> + cat.Age;
+                <span class="csharp-teal">Console</span>.WriteLine(cat.Name + color + age);
+            }
+
+            <span class="csharp-teal">Console</span>.ReadLine();
+        }
+    }
+}</code></pre>
+      </section>
+    </li>
+    <li>
+      <section>
+        <header>
+          <h3>More ideas</h3>
+        </header>  
+        <p>
+          You can add schema restrictions and .NET validators such as <a href="https://docs.microsoft.com/en-us/dotnet/api/system.configuration.integervalidator">IntegerValidator</a>.
+        </p>
+        <p>
+          Above Age in CatConfiguration.cs add:
+      </p>
+<pre><code class="language-csharp">[<span class="csharp-teal">IntegerValidator</span>(MinValue = NoAgeSpecified)]</code></pre>
+      <p>
+        In CatLadySchema.xsd, change catType.age.type to "ageType" and to the bottom add:
+      </p>
+<pre><code class="language-xml"><span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:simpleType</span> <wbr/><span class="csharp-red">name</span>="<span class="csharp-blue">ageType</span>"<span class="csharp-blue">&gt;</span>
+    <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:restriction</span> <wbr/><span class="csharp-red">base</span>="<span class="csharp-blue">xs:int</span>"<span class="csharp-blue">&gt;</span>
+        <span class="csharp-blue">&lt;</span><span class="csharp-brown">xs:minInclusive</span> <wbr/><span class="csharp-red">value</span>="<span class="csharp-blue">-1</span>"<span class="csharp-blue">/&gt;</span>
+    <span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:restriction</span><span class="csharp-blue">&gt;</span> 
+<span class="csharp-blue">&lt;/</span><span class="csharp-brown">xs:simpleType</span><span class="csharp-blue">&gt;</span></code></pre>
+      </section>
+    </li>
+  </ol>
+</article>
+</main>
+
+<aside>
+  <figure>
+    <img src="https://jbp.dev/img/bird-small.jpg" alt="You caught me, I'm not a bird."/>
+    <figcaption>Jean-Bernard Pellerin</figcaption>
+  </figure>
+  <p>
+    Contact:
+    I can be reached <a href="mailto:jbp@jbp.dev">by email</a>.
+  </p>
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>  
+
+</body>
+</html>
