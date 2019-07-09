@@ -193,6 +193,7 @@ body > aside {
 body > footer {
   grid-area: footer;
   text-align: center;
+  background: #78d2ff;
 }
 
 body > footer a {
