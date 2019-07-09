@@ -152,6 +152,9 @@ body > nav ul {
   margin-block-start: 0;
   padding-inline-start: 1em;
 }
+body > nav li {
+  padding-top: .5em;  
+}
 
 body > header {
   grid-area: header;
