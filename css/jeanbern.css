@@ -169,7 +169,6 @@ body > nav {
   grid-area: nav;
   border: thick double #32a1ce;
   padding: .5em;
-  font-size: .8em;
 }
 
 body > nav h2 {
