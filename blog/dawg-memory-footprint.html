@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143311168-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143311168-1');
+  </script>
+  <title>Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="How to shrink a directed acyclic word graph from nodes with dictionaries to compact arrays."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://jbp.dev/blog/dawg-memory-footprint.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://jbp.dev#organization",
+            "name": "jbp.dev",
+            "url": "https://jbp.dev",
+            "sameAs": [
+                "https://www.facebook.com/jbpellerin",
+                "https://www.linkedin.com/in/jean-bernard-pellerin-026bbb23",
+                "https://twitter.com/jeanbpellerin"
+            ],
+            "logo": {
+                "@type": "ImageObject",
+                "@id": "https://jbp.dev#logo",
+                "url": "https://jbp.dev/img/bird.jpg",
+                "caption": "jbp.dev"
+            },
+            "image": {
+                "@id": "https://jbp.dev#logo"
+            }
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://jbp.dev#website",
+            "url": "https://jbp.dev",
+            "name": "jbp.dev",
+            "publisher": {
+                "@id": "https://jbp.dev#organization"
+            }/*,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://jbp.dev?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }*/
+        },
+        {
+            "@type": "WebPage",
+            "@id": "https://jbp.dev#webpage",
+            "url": "https://jbp.dev/dawg-memory-footprint.html",
+            "inLanguage": "en",
+            "name": "Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint",
+            "isPartOf": {
+                "@id": "https://jbp.dev#website"
+            },
+            "about": {
+                "@id": "https://jbp.dev#organization"
+            },
+            "description": "How to shrink a directed acyclic word graph from nodes with dictionaries to compact arrays."
+        }
+    ]
+}
+  </script>
+  <style>
+main section > svg {
+  max-width: 720px;
+  margin-left: 0
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>
+    JB's BLOG
+  </h2>
+</header>
+
+<nav>
+  <section>
+    <header>
+      <h2>Breadcrumb</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev" title="jbp.dev - Homepage">Home</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">Blog - DAWG - Reducing DAWG memory footprint</a>
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>DAWG series</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-basics.html" title="Directed Acyclic Word Graphs - Part 1 - The Basics">The Basics</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">First Implementation in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">Reducing DAWG memory footprint</a>
+      </li>
+      <li>
+        Using the DAWG to find spelling errors
+      </li>
+      <li>
+        DAWG performance profiling - part 1
+      </li>
+      <li>
+        Potential DAWG performance improvements
+      </li>
+      <li>
+        Speedy DAWG
+      </li>
+      <li>
+        DAWG performance profiling - part 2
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>Other posts</h2>
+    </header>
+    <ul>
+      <li>
+      <a href="https://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Custom Binary Serialization in C#</a>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>Directed Acyclic Word Graphs</h1>
+    <h2>Part 3 - Reducing DAWG memory footprint</h2>
+  </header>
+  <section>
+    <header>
+      <h3>Preamble </h3>
+    </header>
+    <p>
+      Years ago I had found some code that already included a large part of what I'm going to introduce in this article.
+      I can't find it anymore, but I do know the author intended for it to be public domain and didn't include a license (otherwise it would at least have been a comment in my code).
+      I'm not even sure what language it was written in...
+      For an overview of some compression techniques you can also look at <cite><a href="http://www.ijcte.org/vol8/1018-C024.pdf" title="Comparisons of Efficient Implementations for DAWG">Comparisons of Efficient Implementations for DAWG</a> by Fuketa, Morita, and Aoe</cite>.
+      It's not published in the greatest journal and it has a fair amount of grammatical errors, but they do a good job covering some different options (and English isn't their first language so be nice).
+    </p>
+    <p>
+      The examples on this page will expand on the DAWG graph built in the previous article.
+    </p>
+    <svg viewBox="0 0 700 300" xmlns="http://www.w3.org/2000/svg"><ellipse stroke="#000" fill="none" cx="50.5" cy="150.5" rx="30" ry="30"/><text x="45.5" y="156.5" font-family="Times New Roman" font-size="20">0</text><ellipse stroke="#000" fill="none" cx="150.5" cy="50.5" rx="30" ry="30"/><text x="145.5" y="56.5" font-family="Times New Roman" font-size="20">1</text><ellipse stroke="#000" fill="none" cx="275.5" cy="50.5" rx="30" ry="30"/><text x="270.5" y="56.5" font-family="Times New Roman" font-size="20">2</text><ellipse stroke="#000" fill="none" cx="400.5" cy="50.5" rx="30" ry="30"/><text x="395.5" y="56.5" font-family="Times New Roman" font-size="20">3</text><ellipse stroke="#000" fill="none" cx="400.5" cy="50.5" rx="24" ry="24"/><ellipse stroke="#000" fill="none" cx="525.5" cy="50.5" rx="30" ry="30"/><text x="520.5" y="56.5" font-family="Times New Roman" font-size="20">4</text><ellipse stroke="#000" fill="none" cx="525.5" cy="50.5" rx="24" ry="24"/><ellipse stroke="#000" fill="none" cx="150.5" cy="250.5" rx="30" ry="30"/><text x="145.5" y="256.5" font-family="Times New Roman" font-size="20">5</text><ellipse stroke="#000" fill="none" cx="275.5" cy="250.5" rx="30" ry="30"/><text x="270.5" y="256.5" font-family="Times New Roman" font-size="20">6</text><ellipse stroke="#000" fill="none" cx="400.5" cy="250.5" rx="30" ry="30"/><text x="395.5" y="256.5" font-family="Times New Roman" font-size="20">7</text><ellipse stroke="#000" fill="none" cx="525.5" cy="250.5" rx="30" ry="30"/><text x="520.5" y="256.5" font-family="Times New Roman" font-size="20">8</text><path stroke="#000" d="M71.713 129.287l57.574-57.574z"/><path d="M129.287 71.713l-9.193 2.122 7.071 7.071z"/><text x="86.5" y="91.5" font-family="Times New Roman" font-size="20">c</text><path stroke="#000" d="M180.5 50.5h65z"/><path d="M245.5 50.5l-8-5v10z"/><text x="208.5" y="41.5" font-family="Times New Roman" font-size="20">a</text><path stroke="#000" d="M305.5 50.5h65z"/><path d="M370.5 50.5l-8-5v10z"/><text x="335.5" y="41.5" font-family="Times New Roman" font-size="20">t</text><path stroke="#000" d="M430.5 50.5h65z"/><path d="M495.5 50.5l-8-5v10z"/><text x="459.5" y="41.5" font-family="Times New Roman" font-size="20">s</text><path stroke="#000" d="M71.713 171.713l57.574 57.574z"/><path d="M129.287 229.287l-2.122-9.193-7.071 7.071z"/><text x="105.5" y="191.5" font-family="Times New Roman" font-size="20">f</text><path stroke="#000" d="M180.5 250.5h65z"/><path d="M245.5 250.5l-8-5v10z"/><text x="208.5" y="241.5" font-family="Times New Roman" font-size="20">a</text><path stroke="#000" d="M305.5 250.5h65z"/><path d="M370.5 250.5l-8-5v10z"/><text x="333.5" y="241.5" font-family="Times New Roman" font-size="20">c</text><path stroke="#000" d="M400.5 220.5v-140z"/><path d="M400.5 80.5l-5 8h10z"/><text x="389.5" y="156.5" font-family="Times New Roman" font-size="20">t</text><path stroke="#000" d="M430.5 250.5h65z"/><path d="M495.5 250.5l-8-5v10z"/><text x="458.5" y="241.5" font-family="Times New Roman" font-size="20">e</text><path stroke="#000" d="M509.6 225.06L416.4 75.94z"/><path d="M416.4 75.94v9.434l8.48-5.3z"/><text x="451.5" y="169.5" font-family="Times New Roman" font-size="20">t</text></svg>
+  </section>
+  <section>
+    <header>
+      <h3>Flattening Nodes</h3>
+    </header>
+    <p>
+      To begin, we'll place our nodes in an array with no particular order and see where that leads.
+    </p>
+    <svg viewBox="0 0 550 150" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:20}path{stroke:#000;fill:transparent}</style><path d="M20 20h500v60H20zm60 0v60m60-60v60m60-60v60"/><path d="M205 25h50v50h-50zm55-5v60m6-55h50v50h-50zm54-4v60m60-60v60"/><text x="390" y="75">. . .</text><text x="45" y="55">0</text><text x="105" y="55">1</text><text x="165" y="55">2</text><text x="225" y="55">3</text><text x="285" y="55">4</text><text x="345" y="55">5</text><path d="M50 80q30 30 60 0"/><text x="75" y="110">c</text><path d="M50 80q150 80 300 0"/><text x="195" y="140">f</text><path d="M110 80q30 30 60 0"/><text x="135" y="110">a</text><path d="M170 80q30 30 60 0"/><text x="195" y="110">t</text><path d="M230 80q30 30 60 0"/><text x="255" y="110">s</text></svg>
+  </section>
+  <section>
+    <header>
+      <h3>Flattening Edges</h3>
+    </header>
+    <p>
+      Edges are essentially a <code>char</code> to <code>Node-reference</code> pair.
+      Since our nodes are now stored in an array, this becomes a <code>char</code> to <code>index</code> pair. Let's store all these <code>node-references</code> in an array.
+    </p>
+    <svg viewBox="0 0 550 200" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:20}path{stroke:#000;fill:transparent}</style><path d="M20 20h500v60H20zm60 0v60m60-60v60m60-60v60"/><path d="M205 25h50v50h-50zm55-5v60m5-55h50v50h-50zm55-5v60m60-60v60M20 120h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60"/><text x="390" y="75">. . .</text><text x="45" y="55">0</text><text x="105" y="55">1</text><text x="165" y="55">2</text><text x="225" y="55">3</text><text x="285" y="55">4</text><text x="345" y="55">5</text><path stroke="#000" d="M50 80v40"/><text x="40" y="110">c</text><path stroke="#000" d="M50 80l60 40"/><text x="70" y="110">f</text><path stroke="#000" d="M110 80l60 40"/><text x="135" y="110">a</text><path stroke="#000" d="M170 80l60 40"/><text x="195" y="110">t</text><path stroke="#000" d="M230 80l60 40"/><text x="255" y="110">s</text><path stroke="#000" d="M350 80v40"/><text x="340" y="110">a</text><text x="45" y="155">1</text><text x="105" y="155">5</text><text x="165" y="155">2</text><text x="225" y="155">3</text><text x="285" y="155">4</text><text x="345" y="155">6</text><text x="390" y="175">. . .</text></svg>    
+    <p>
+      Furthermore, instead of storing the edges, a node can store the start and end index of it's edges in this new array.
+      I'll even skip a step and point out that since the mappings from node to edge are ordered, we only need to store the start index, using that of the next node to determine the end.
+      This will require the <code>node-reference</code> array to also contain the edge <code>char</code> value.
+      Instead of storing them together, I'll create a new array, parallel to the <code>node-reference</code> one.
+    </p>
+    <svg viewBox="0 0 550 250" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:20}path{stroke:#000;fill:transparent}</style><path d="M20 20h500v60H20zm60 0v60m60-60v60m60-60v60"/><path d="M205 25h50v50h-50zm55-5v60m5-55h50v50h-50zm55-5v60m60-60v60M20 120h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 180h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60"/><text x="390" y="75">. . .</text><text x="45" y="55">0</text><text x="105" y="55">1</text><text x="165" y="55">2</text><text x="225" y="55">3</text><text x="285" y="55">4</text><text x="345" y="55">5</text><path stroke="#000" d="M50 80l-30 40M110 80l30 40M170 80l30 40M230 80l30 40M290 80l30 40M350 80l-30 40"/><text x="45" y="155">1</text><text x="105" y="155">5</text><text x="165" y="155">2</text><text x="225" y="155">3</text><text x="285" y="155">4</text><text x="345" y="155">6</text><text x="390" y="175">. . .</text><text x="45" y="215">c</text><text x="105" y="215">f</text><text x="165" y="215">a</text><text x="225" y="215">t</text><text x="285" y="215">s</text><text x="345" y="215">a</text><text x="390" y="235">. . .</text></svg>
+    <p>
+      You may have noticed how Node 4 and node 5 have the same first-edge index.
+      That's because Node 4 doesn't have any edges leading from it.
+    </p>
+    <p>
+      The first-edge pointers in this diagram can be further reduced to another array, this one parallel to the <code>nodes</code>.
+    </p>
+    <svg viewBox="0 0 550 300" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:20}path{stroke:#000;fill:transparent}</style><path d="M20 20h500v60H20zm60 0v60m60-60v60m60-60v60"/><path d="M205 25h50v50h-50zm55-5v60m5-55h50v50h-50zm55-5v60m60-60v60M20 80h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 160h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 220h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60"/><text x="45" y="55">0</text><text x="105" y="55">1</text><text x="165" y="55">2</text><text x="225" y="55">3</text><text x="285" y="55">4</text><text x="345" y="55">5</text><text x="390" y="75">. . .</text><text x="45" y="115">0</text><text x="105" y="115">2</text><text x="165" y="115">3</text><text x="225" y="115">4</text><text x="285" y="115">5</text><text x="345" y="115">5</text><text x="390" y="135">. . .</text><text x="45" y="195">1</text><text x="105" y="195">5</text><text x="165" y="195">2</text><text x="225" y="195">3</text><text x="285" y="195">4</text><text x="345" y="195">6</text><text x="390" y="215">. . .</text><text x="45" y="255">c</text><text x="105" y="255">f</text><text x="165" y="255">a</text><text x="225" y="255">t</text><text x="285" y="255">s</text><text x="345" y="255">a</text><text x="390" y="255">. . .</text></svg>
+    <p>
+      In the implementation, I'll make this array larger than the node array by one element.
+      This way, when we look to the next node to find our end-index, we don't have to worry about bound checking.
+      Therefore, the value of this last element will be the length of the edge array, ensuring that we can browse up to and including the last edge.
+    </p>
+  </section>
+  <section>
+    <header>
+      <h3>Ordering Nodes</h3>
+    </header>
+    <p>
+      You may have noticed that the node array is still holding on to another piece of information, <em>The terminal state</em>.
+      Instead of placing the nodes into the array with no regard for their order, let's place the terminal ones at the beginning.
+    </p>
+    <svg viewBox="0 0 550 300" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:20}path{stroke:#000;fill:transparent}</style><path d="M20 20h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 80h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 160h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60M20 220h500v60H20zm60 0v60m60-60v60m60-60v60m60-60v60m60-60v60m60-60v60"/><text x="45" y="55">3</text><text x="105" y="55">4</text><text x="165" y="55">0</text><text x="225" y="55">1</text><text x="285" y="55">2</text><text x="345" y="55">5</text><text x="390" y="75">. . .</text><text x="45" y="115">0</text><text x="105" y="115">1</text><text x="165" y="115">1</text><text x="225" y="115">3</text><text x="285" y="115">4</text><text x="345" y="115">5</text><text x="390" y="135">. . .</text><text x="45" y="195">4</text><text x="105" y="195">1</text><text x="165" y="195">5</text><text x="225" y="195">2</text><text x="285" y="195">3</text><text x="345" y="195">6</text><text x="390" y="215">. . .</text><text x="45" y="255">s</text><text x="105" y="255">c</text><text x="165" y="255">f</text><text x="225" y="255">a</text><text x="285" y="255">t</text><text x="345" y="255">a</text><text x="390" y="255">. . .</text></svg>
+    <p>
+      Now, instead of needing to store if each node is terminal or not, we can just remember how many there are.
+    </p>
+    <p>
+      For our example, that would be 2. So any edge with index &lt; 2 is terminal.
+    </p>
+  </section>
+  <section>
+    <header>
+      <h3>Ordering Edges</h3>
+    </header>
+    <p>
+      Because of our construction method we get this for free, but it's important to note that we should order each node's edges alphabetically.
+      When traversing the graph, we can now use a binary search among a node's edges.
+      Or, if iterrating through all the edges looking for one in particular, we can exit early once we arrive to a letter coming after our target.
+    </p>
+  </section>
+  <section>
+    <header>
+      <h3>Code for the array-DAWG</h3>
+    </header>
+    <p>
+      First off, I'll start by adding the following to the DawgNode class.
+      The function travels down the graph in a depth-first way, assigning an index position for our Node ordering, as well as counting the reachable terminal nodes for our perfect hash method.
+      It also creates a flattened list of the nodes.
+    </p>
+    <pre><code class="language-csharp"><span class="csharp-blue">public int</span> IndexOffsetByTerminalCount { <span class="csharp-blue">get</span>; <span class="csharp-blue">private set</span>; } = <span class="csharp-blue">int</span>.MinValue;
+
+<span class="csharp-blue">public int</span> ReachableTerminalNodes { <span class="csharp-blue">get</span>; <span class="csharp-blue">private set</span>; }
+
+<span class="csharp-blue">public</span> (<span class="csharp-blue">int</span> edges, <span class="csharp-blue">int</span> terminals) <span class="csharp-gold">Traversal</span>(<span class="csharp-blue">ref int</span> <span class="csharp-navy">low</span>, <span class="csharp-blue">ref int</span> <span class="csharp-navy">high</span>, <span class="csharp-teal">ICollection</span>&lt;<span class="csharp-teal">DawgNode</span>&gt; <span class="csharp-navy">nodes</span>)
+{
+    <span class="csharp-purple">if</span> (IndexOffsetByTerminalCount != <span class="csharp-blue">int</span>.MinValue)
+    {
+        <span class="csharp-purple">return</span> (0, ReachableTerminalNodes);
+    }
+
+    <span class="csharp-purple">if</span> (IsTerminal)
+    {
+        IndexOffsetByTerminalCount = --<span class="csharp-navy">low</span>;
+    }
+    <span class="csharp-purple">else</span>
+    {
+        IndexOffsetByTerminalCount = ++<span class="csharp-navy">high</span>;
+    }
+
+    <span class="csharp-blue">var</span> <span class="csharp-navy">totalEdges</span> = 0;
+
+    <span class="csharp-navy">nodes</span>.<span class="csharp-gold">Add</span>(<span class="csharp-blue">this</span>);
+
+    <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">child</span> <span class="csharp-purple">in</span> Children)
+    {
+        <span class="csharp-blue">var</span> (<span class="csharp-navy">childEdges</span>, <span class="csharp-navy">childTerminals</span>) = <span class="csharp-navy">child</span>.Value.<span class="csharp-gold">Traversal</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">low</span>, <span class="csharp-blue">ref</span> <span class="csharp-navy">high</span>, <span class="csharp-navy">nodes</span>);
+
+        <span class="csharp-green">//Add 1 to represent the edge to the child itself.</span>
+        <span class="csharp-navy">totalEdges</span> += <span class="csharp-navy">childEdges</span> + 1;
+        ReachableTerminalNodes += <span class="csharp-navy">childTerminals</span>;
+    }
+
+    ReachableTerminalNodes += IsTerminal ? 1 : 0;
+    <span class="csharp-blue">return</span> (<span class="csharp-navy">totalEdges</span>, ReachableTerminalNodes);
+}</pre></code>
+  <p>
+    Next, we add a Dawg class which consumes the graph and this information, building the arrays and providing some traversal methods.
+  </p>
+  <pre><code class="language-csharp"><span class="csharp-blue">internal sealed class</span> <span class="csharp-teal">Dawg</span>
+{
+    <span class="csharp-blue">private readonly int</span> _terminalNodeIndex;
+    <span class="csharp-blue">private readonly int</span> _rootNodeIndex;
+    <span class="csharp-blue">private readonly int</span>[] _firstChildEdgeIndex;
+
+    <span class="csharp-blue">private readonly int</span>[] _edgesToNodeIndex;
+    <span class="csharp-blue">private readonly char</span>[] _edgeCharacter;
+
+    <span class="csharp-blue">private readonly ushort</span>[] _reachableTerminalNodes;
+
+    <span class="csharp-blue">private readonly long</span>[] _wordCount;
+        
+    <span class="csharp-blue">public</span> <span class="csharp-teal">Dawg</span>(<span class="csharp-teal">DawgBuilder</span> <span class="csharp-navy">builder</span>)
+    {
+        <span class="csharp-blue">var</span> <span class="csharp-navy">root</span> = <span class="csharp-navy">builder</span>.<span class="csharp-gold">Finish</span>();
+        <span class="csharp-blue">var</span> <span class="csharp-navy">allNodes</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">List</span>&lt;<span class="csharp-teal">DawgNode</span>&gt;();
+        <span class="csharp-blue">int</span> <span class="csharp-navy">terminalNodeCount</span> = 0, <span class="csharp-navy">nonTerminalNodeCount</span> = -1;
+        <span class="csharp-blue">var</span> (<span class="csharp-navy">edges</span>, <span class="csharp-blue">_</span>) = root.<span class="csharp-gold">Traversal</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">terminalNodeCount</span>, <span class="csharp-blue">ref</span> <span class="csharp-navy">nonTerminalNodeCount</span>, <span class="csharp-navy">allNodes</span>);
+
+        _edgesToNodeIndex = <span class="csharp-blue">new</span> int[<span class="csharp-navy">edges</span>];
+        _edgeCharacter = <span class="csharp-blue">new</span> char[<span class="csharp-navy">edges</span>];
+
+        _firstChildEdgeIndex = <span class="csharp-blue">new</span> int[<span class="csharp-navy">allNodes</span>.Count + 1];
+        _firstChildEdgeIndex[_firstChildEdgeIndex.Length - 1] = _edgesToNodeIndex.Length;
+
+        _rootNodeIndex = <span class="csharp-navy">root</span>.IndexOffsetByTerminalCount - <span class="csharp-navy">terminalNodeCount</span>;
+
+        _terminalNodeIndex = -<span class="csharp-navy">terminalNodeCount</span>;
+
+        _reachableTerminalNodes = <span class="csharp-blue">new ushort</span>[<span class="csharp-navy">allNodes</span>.Count];
+
+        <span class="csharp-blue">var</span> orderedNodes = <span class="csharp-blue">new</span> <span class="csharp-teal">DawgNode</span>[<span class="csharp-navy">allNodes</span>.Count];
+        <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">node</span> <span class="csharp-purple">in</span> <span class="csharp-navy">allNodes</span>)
+        {
+            <span class="csharp-navy">orderedNodes</span>[<span class="csharp-navy">node</span>.IndexOffsetByTerminalCount - <span class="csharp-navy">terminalNodeCount</span>] = <span class="csharp-navy">node</span>;
+        }
+
+        <span class="csharp-blue">var</span> edgeIndex = 0;
+        <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">node</span> <span class="csharp-purple">in</span> <span class="csharp-navy">orderedNodes</span>)
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-navy">realId</span> = <span class="csharp-navy">node</span>.IndexOffsetByTerminalCount - <span class="csharp-navy">terminalNodeCount</span>;
+            _firstChildEdgeIndex[<span class="csharp-navy">realId</span>] = edgeIndex;
+            _reachableTerminalNodes[<span class="csharp-navy">realId</span>] = (<span class="csharp-blue">ushort</span>)<span class="csharp-navy">node</span>.ReachableTerminalNodes;
+            <span class="csharp-purple">foreach</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">child</span> <span class="csharp-purple">in</span> <span class="csharp-navy">node</span>.Children)
+            {
+                _edgesToNodeIndex[<span class="csharp-navy">edgeIndex</span>] = <span class="csharp-navy">child</span>.Value.IndexOffsetByTerminalCount - <span class="csharp-navy">terminalNodeCount</span>;
+                _edgeCharacter[<span class="csharp-navy">edgeIndex</span>] = <span class="csharp-navy">child</span>.Key;
+                <span class="csharp-navy">edgeIndex</span>++;
+            }
+        }
+
+        _wordCount = <span class="csharp-navy">builder</span>.Counting.ToArray();
+    }
+        
+    <span class="csharp-blue">public int</span> <span class="csharp-gold">GetIndex</span>(<span class="csharp-blue">string</span> word)
+    {
+        <span class="csharp-blue">var</span> <span class="csharp-navy">index</span> = 0;
+        <span class="csharp-blue">var</span> <span class="csharp-navy">currentNode</span> = _rootNodeIndex;
+        foreach (<span class="csharp-blue">var</span> target in word)
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-navy">firstChildIndex</span> = _firstChildEdgeIndex[currentNode];
+            <span class="csharp-blue">var</span> <span class="csharp-navy">lastChildIndex</span> = _firstChildEdgeIndex[<span class="csharp-navy">currentNode</span> + 1];
+            <span class="csharp-navy">currentNode</span> = -1;
+
+            <span class="csharp-purple">for</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">i</span> = <span class="csharp-navy">firstChildIndex</span>; <span class="csharp-navy">i</span> &lt; <span class="csharp-navy">lastChildIndex</span>; <span class="csharp-navy">i</span>++)
+            {
+                <span class="csharp-blue">var</span> <span class="csharp-navy">currentCharacter</span> = _edgeCharacter[<span class="csharp-navy">i</span>];
+                <span class="csharp-blue">var</span> <span class="csharp-navy">nextNode</span> = _edgesToNodeIndex[<span class="csharp-navy">i</span>];
+                <span class="csharp-purple">if</span> (<span class="csharp-navy">currentCharacter</span> &lt; <span class="csharp-navy">target</span>)
+                {
+                    <span class="csharp-navy">index</span> += _reachableTerminalNodes[<span class="csharp-navy">nextNode</span>];
+                    <span class="csharp-purple">continue</span>;
+                }
+
+                <span class="csharp-green">// Because the entries are sorted, this is either equal or the word is not an entry in our DAWG.</span>
+                <span class="csharp-purple">if</span> (<span class="csharp-navy">currentCharacter</span> != <span class="csharp-navy">target</span>)
+                {
+                    <span class="csharp-purple">return</span> -1;
+                }
+
+                <span class="csharp-navy">currentNode</span> = <span class="csharp-navy">nextNode</span>;
+                <span class="csharp-purple">break</span>;
+            }
+
+            <span class="csharp-green">// This is reached if all edges have characters &lt; target.</span>
+            <span class="csharp-purple">if</span> (<span class="csharp-navy">currentNode</span> == -1)
+            {
+                <span class="csharp-purple">return</span> -1;
+            }
+
+            <span class="csharp-navy">if</span> (<span class="csharp-navy">currentNode</span> &lt; _terminalNodeIndex)
+            {
+                <span class="csharp-navy">index</span>++;
+            }
+        }
+
+        <span class="csharp-green">// Must end on a terminal currentNode.</span>
+        <span class="csharp-purple">if</span> (<span class="csharp-navy">currentNode</span> &gt;= _terminalNodeIndex)
+        {
+            <span class="csharp-purple">return</span> -1;
+        }
+
+        <span class="csharp-navy">// Because we want 0-indexed</span>
+        <span class="csharp-purple">return</span> <span class="csharp-navy">index</span> - 1;
+    }
+
+    <span class="csharp-blue">public string</span> <span class="csharp-gold">GetWord</span>(<span class="csharp-blue">int</span> <span class="csharp-navy">index</span>)
+    {
+        <span class="csharp-purple">if</span> (<span class="csharp-navy">index</span> &gt; _wordCount.Length)
+        {
+            <span class="csharp-purple">return</span> <span class="csharp-blue">null</span>;
+        }
+
+        <span class="csharp-green">// Because we are 0-indexed</span>
+        <span class="csharp-navy">index</span>++;
+        <span class="csharp-blue">var</span> <span class="csharp-navy">currentNode</span> = _rootNodeIndex;
+        <span class="csharp-blue">var</span> <span class="csharp-navy">output</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">StringBuilder</span>();
+        <span class="csharp-purple">while</span> (<span class="csharp-navy">index</span> &gt; 0)
+        {
+            <span class="csharp-blue">var</span> <span class="csharp-navy">firstChildIndex</span> = _firstChildEdgeIndex[<span class="csharp-navy">currentNode</span>];
+            <span class="csharp-blue">var</span> <span class="csharp-navy">lastChildIndex</span> = _firstChildEdgeIndex[<span class="csharp-navy">currentNode</span> + 1];
+            <span class="csharp-purple">for</span> (<span class="csharp-blue">var</span> <span class="csharp-navy">i</span> = <span class="csharp-navy">firstChildIndex</span>; <span class="csharp-navy">i</span> &lt; <span class="csharp-navy">lastChildIndex</span>; <span class="csharp-navy">i</span>++)
+            {
+                <span class="csharp-blue">var</span> <span class="csharp-navy">nextNode</span> = _edgesToNodeIndex[<span class="csharp-navy">i</span>];
+                <span class="csharp-blue">var</span> <span class="csharp-navy">nextNumber</span> = _reachableTerminalNodes[<span class="csharp-navy">nextNode</span>];
+                <span class="csharp-purple">if</span> (<span class="csharp-navy">nextNumber</span> &lt; <span class="csharp-navy">index</span>)
+                {
+                    <span class="csharp-navy">index</span> -= <span class="csharp-navy">nextNumber</span>;
+                    <span class="csharp-purple">continue</span>;
+                }
+
+                <span class="csharp-navy">currentNode</span> = <span class="csharp-navy">nextNode</span>;
+                <span class="csharp-purple">if</span> (<span class="csharp-navy">currentNode</span> &lt; _terminalNodeIndex)
+                {
+                    <span class="csharp-navy">index</span>--;
+                }
+
+                <span class="csharp-blue">var</span> <span class="csharp-navy">currentCharacter</span> = _edgeCharacter[<span class="csharp-navy">i</span>];
+                <span class="csharp-navy">output</span>.<span class="csharp-gold">Append</span>(<span class="csharp-navy">currentCharacter</span>);
+                <span class="csharp-purple">break</span>;
+            }
+        }
+
+        <span class="csharp-purple">if</span> (<span class="csharp-navy">index</span> != 0)
+        {
+            <span class="csharp-purple">return</span> <span class="csharp-blue">null</span>;
+        }
+
+        <span class="csharp-purple">return</span> <span class="csharp-navy">output</span>.<span class="csharp-gold">ToString</span>();
+    }
+}</code></pre>
+  </section>
+</article>
+</main>
+
+<aside>
+  <figure>
+    <img src="https://jbp.dev/img/bird-small.jpg" alt="You caught me, I'm not a bird."/>
+    <figcaption>Jean-Bernard Pellerin</figcaption>
+  </figure>
+  <p>
+    Contact:
+    I can be reached <a href="mailto:jbp@jbp.dev">by email</a>.
+  </p>
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>
+
+</body>
+</html>

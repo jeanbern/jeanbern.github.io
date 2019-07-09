@@ -11,7 +11,7 @@ body {
   /* 100% of the viewport height */
   height: 100vh;
   color: #757575;
-  background-color: #f0f0f0;
+  background-color: #f8f8f8;
   grid-gap: 1em; 
 }
 
@@ -221,6 +221,7 @@ main article.inner-article > header:first-child {
 
 pre {
   line-height: initial;
+  overflow-x: auto;
 }
 
 main ul {
