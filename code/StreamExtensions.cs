@@ -8,10 +8,10 @@ using System.Text;
 
 namespace JBP
 {
-    /*  This class is a snippet from https://github.com/jeanbern/jeanbern.github.io/master/code/StreamExtensions.cs
-     *  Copyright (c) 2019 Jean-Bernard Pellerin
+    /*  This class is a snippet from https://github.com/jeanbern/jeanbern.github.io/blob/master/code/StreamExtensions.cs
+     *  Copyright © 2019 Jean-Bernard Pellerin
      *  MIT License
-     *  https://github.com/jeanbern/jeanbern.github.io/master/LICENSE
+     *  https://github.com/jeanbern/jeanbern.github.io/blob/master/LICENSE
      */
     public static class StreamExtensions
     {

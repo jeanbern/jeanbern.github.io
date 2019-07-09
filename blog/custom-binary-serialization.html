@@ -74,6 +74,11 @@
     ]
 }
   </script>
+  <style>
+main section > svg {
+  max-width: 720px;
+}
+  </style>
 </head>
 <body>
 
@@ -299,24 +304,47 @@
   
   <section>
     <header>
+      <h3>We just want the code</h3>
+    </header>
+    <p>
+      What you really came here for: <a href="https://github.com/jeanbern/jeanbern.github.io/blob/master/code/StreamExtensions.cs" title="StreamExtensions.cs">StreamExtensions.cs</a>
+    </p>
+  </section>
+  
+  <section>
+    <header>
       <h3>Performance</h3>
     </header>
     <section>
       <header>
-        <h4>Setup</h4>
+        <h4><a href="https://github.com/neuecc/ZeroFormatter">
+            ZeroFormatter
+          </a> benchmark</h4>
       </header>
       <p>
-        This is not going to be a perfect performance test. 
-        I'm only comparing my method to a couple of others, and I'm only using one test case.
-        The data comes from a class I'm using in another project and represents my real use-case.
-        It's not even using structs, just long arrays of value types.
-        The full code can be found here:
-        <a>
-          TODO: PUT THIS ON GITHUB AND LINK TO IT
-        </a>
+        Adapting the benchmark used by ZeroFormatter, I'll compare this custom serialization method against it in a few scenarios.
+        It's not exactly a fair test, as all of my usages are hand-coded and ZeroFormatter has to use reflection.
       </p>
       <p>
-        We have just over 1.4MB:
+        The code can all be found <a href="https://github.com/jeanbern/jeanbern.github.io/blob/master/code/ZeroFormatterBenchmark.cs" title="ZeroFormatterBenchmark.cs">on github</a>.
+      </p>
+      <svg viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:1px}text.zero{fill:#ff8c00}text.cool{fill:#00f}text.case{font-size:2px}path{stroke:#000;fill:transparent;stroke-width:.1}path.cool,path.zero{fill:#ffa07a;stroke-width:0}path.cool{fill:#e0ffff}</style><text x="25" y="7">Legend:</text><text class="zero case" x="30" y="6">ZeroFormatter</text><text class="cool case" x="30" y="8">Custom</text><text class="case" x="30" y="12">Winner per category is colored</text><path class="zero" d="M1 60V29.19h1V60z"/><text x="1.8" y="28.9" transform="rotate(270 1.8 28.9)">30.81ms</text><path class="cool" d="M2 60V40.04h1V60z"/><text x="2.8" y="39.7" transform="rotate(270 2.8 39.7)">19.96ms</text><path class="zero" d="M4 60V44.79h1V60z"/><text x="4.8" y="44.5" transform="rotate(270 4.8 44.5)">15.21ms</text><path class="cool" d="M5 60V37.02h1V60z"/><text x="5.8" y="36.7" transform="rotate(270 5.8 36.7)">22.98ms</text><path class="zero" d="M7 60V10h1v50z"/><text x="7.8" y="9.7" transform="rotate(270 7.8 9.7)">50B</text><path class="cool" d="M8 60V34h1v26z"/><text x="8.8" y="33.7" transform="rotate(270 8.8 33.7)">26B</text><text class="cool" x="1" y="63.75" transform="rotate(290 1 63.75)">Serialize</text><text class="zero" x="3.9" y="64.75" transform="rotate(290 3.9 64.75)">Deserialize</text><text class="cool" x="6.9" y="64.5" transform="rotate(290 6.9 64.5)">Size (byte)</text><text class="case" x="3" y="67">Person</text><path class="zero" d="M11 60V45.48h1V60z"/><text x="11.8" y="45.2" transform="rotate(270 11.8 45.2)">14.52s</text><path class="cool" d="M12 60V37.99h1V60z"/><text x="12.8" y="37.7" transform="rotate(270 12.8 37.7)">22.01s</text><path class="zero" d="M14 60V42.72h1V60z"/><text x="14.8" y="42.4" transform="rotate(270 14.8 42.4)">17.28s</text><path class="cool" d="M15 60V38.4h1V60z"/><text x="15.8" y="38.1" transform="rotate(270 15.8 38.1)">21.60s</text><path class="zero" d="M17 60V11.17h1V60z"/><text x="17.8" y="10.9" transform="rotate(270 17.8 10.9)">48.83MB</text><path class="cool" d="M18 60V34.61h1V60z"/><text x="18.8" y="34.3" transform="rotate(270 18.8 34.3)">25.39MB</text><text class="zero" x="11" y="63.75" transform="rotate(290 11 63.75)">Serialize</text><text class="zero" x="13.9" y="64.75" transform="rotate(290 13.9 64.75)">Deserialize</text><text class="cool" x="16.9" y="64.5" transform="rotate(290 16.9 64.5)">Size (MB)</text><text class="case" x="12" y="67">Person[]</text><path class="zero" d="M21 60v-4.58h1V60z"/><text x="21.8" y="55.1" transform="rotate(270 21.8 55.1)">4.58ms</text><path class="cool" d="M22 60v-2.59h1V60z"/><text x="22.8" y="57.1" transform="rotate(270 22.8 57.1)">2.59ms</text><path class="zero" d="M24 60v-2.31h1V60z"/><text x="24.8" y="57.4" transform="rotate(270 24.8 57.4)">2.31ms</text><path class="cool" d="M25 60v-2.21h1V60z"/><text x="25.8" y="57.5" transform="rotate(270 25.8 57.5)">2.21ms</text><path class="zero" d="M27 60v-4h1v4z"/><text x="27.8" y="55.7" transform="rotate(270 27.8 55.7)">4B</text><path class="cool" d="M28 60v-4h1v4z"/><text x="28.8" y="55.7" transform="rotate(270 28.8 55.7)">4B</text><text class="cool" x="21" y="63.75" transform="rotate(290 21 63.75)">Serialize</text><text class="cool" x="23.9" y="64.75" transform="rotate(290 23.9 64.75)">Deserialize</text><text x="26.9" y="64.5" transform="rotate(290 26.9 64.5)">Size (byte)</text><text class="case" x="24" y="67">int</text><path class="zero" d="M31 60v-5.6h1V60z"/><text x="31.8" y="54.1" transform="rotate(270 31.8 54.1)">5.60ms</text><path class="cool" d="M32 60v-2.01h1V60z"/><text x="32.8" y="57.7" transform="rotate(270 32.8 57.7)">2.01ms</text><path class="zero" d="M34 60v-3.84h1V60z"/><text x="34.8" y="55.9" transform="rotate(270 34.8 55.9)">3.84ms</text><path class="cool" d="M35 60v-1.97h1V60z"/><text x="35.8" y="57.7" transform="rotate(270 35.8 57.7)">1.97ms</text><path class="zero" d="M37 60V48h1v12z"/><text x="37.8" y="47.7" transform="rotate(270 37.8 47.7)">12B</text><path class="cool" d="M38 60V48h1v12z"/><text x="38.8" y="47.7" transform="rotate(270 38.8 47.7)">12B</text><text class="cool" x="31" y="63.75" transform="rotate(290 31 63.75)">Serialize</text><text class="cool" x="33.9" y="64.75" transform="rotate(290 33.9 64.75)">Deserialize</text><text x="36.9" y="64.5" transform="rotate(290 36.9 64.5)">Size (byte)</text><text class="case" x="32" y="67">Vector3</text><path class="zero" d="M41 60V23.72h1V60z"/><text x="41.8" y="23.4" transform="rotate(270 41.8 23.4)">36.28s</text><path class="cool" d="M42 60V40.41h1V60z"/><text x="42.8" y="40.1" transform="rotate(270 42.8 40.1)">19.59s</text><path class="zero" d="M44 60V29.68h1V60z"/><text x="44.8" y="29.4" transform="rotate(270 44.8 29.4)">30.32s</text><path class="cool" d="M45 60V32.84h1V60z"/><text x="45.8" y="32.5" transform="rotate(270 45.8 32.5)">27.16s</text><path class="zero" d="M47 60V29.82h1V60z"/><text x="47.8" y="29.5" transform="rotate(270 47.8 29.5)">30.18x10MB</text><path class="cool" d="M48 60V29.82h1V60z"/><text x="48.8" y="29.5" transform="rotate(270 48.8 29.5)">30.18x10MB</text><text class="cool" x="41" y="63.75" transform="rotate(290 41 63.75)">Serialize</text><text class="cool" x="43.9" y="64.75" transform="rotate(290 43.9 64.75)">Deserialize</text><text x="46.9" y="64.5" transform="rotate(290 46.9 64.5)">Size (MB)</text><text class="case" x="43" y="67">string</text><path class="zero" d="M51 60V34.57h1V60z"/><text x="51.8" y="34.3" transform="rotate(270 51.8 34.3)">25.43x10ms</text><path class="cool" d="M52 60v-5.75h1V60z"/><text x="52.8" y="53.9" transform="rotate(270 52.8 53.9)">5.75x10ms</text><path class="zero" d="M54 60V39.92h1V60z"/><text x="54.8" y="39.6" transform="rotate(270 54.8 39.6)">20.08x10ms</text><path class="cool" d="M55 60v-2.07h1V60z"/><text x="55.8" y="57.6" transform="rotate(270 55.8 57.6)">2.07x10ms</text><path class="zero" d="M57 60v-1.18h1V60z"/><text x="57.8" y="58.52" transform="rotate(270 57.8 58.52)">1.18MB</text><path class="cool" d="M58 60v-1.18h1V60z"/><text x="58.8" y="58.52" transform="rotate(270 58.8 58.52)">1.18MB</text><text class="cool" x="51" y="63.75" transform="rotate(290 51 63.75)">Serialize</text><text class="cool" x="53.9" y="64.75" transform="rotate(290 53.9 64.75)">Deserialize</text><text x="56.9" y="64.5" transform="rotate(290 56.9 64.5)">Size (byte)</text><text class="case" x="51" y="67">Vector3[]</text><path d="M0 0v60h60V0z"/></svg>
+      <p>
+        As predicted, our serializer had excellent performance in the struct cases.
+        <br/>
+        We do lose out a few times. I'm guessing that in the case of <code class="language-csharp"><span class="csharp-blue">Person</span></code> and <code class="language-csharp"><span class="csharp-blue">Person</span>[]</code>, the UTF-8 encoding adds a lot of overhead.
+      </p>
+    </section>
+    <section>
+      <header>
+        <h4>My use-case</h4>
+      </header>
+      <p>
+        This is the data structure storing my DAWG from <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">the third article</a> in that series.
+        I'm going to test it against ZeroFormatter again, as well as .NET's
+        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter?view=netcore-2.1" title="BinaryFormatter Class">
+          BinaryFormatter</a>.
+        When loaded with a typical dictionary it would consume just over 1.4MB of memory.
       </p>
       <pre><code class="language-csharp"><span class="csharp-blue">private readonly int</span> _terminalNodeIndex;
 <span class="csharp-blue">private readonly int</span> _rootNodeIndex;
@@ -325,33 +353,25 @@
 <span class="csharp-blue">private readonly char</span>[] _edgeCharacter; //length: 85,600
 <span class="csharp-blue">private readonly ushort</span>[] _reachableTerminalNodes; // length: 38,744
 <span class="csharp-blue">private readonly long</span>[] _wordCount; //length: 82,765</code></pre>
-    </section>
-    <section>
-      <header>
-        <h4>Results</h4>
-      </header>
       <p>
-        After some initial warm up to avoid JIT issues, I loaded the object from a file 1000 times with each method and here are the results.
+        After some initial warm up to avoid JIT issues, I loaded the object from disk 1000 times with each method and here are the results.
       </p>
       <ul>
         <li>
             Custom: 495ms
         </li>
         <li>
-          <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter?view=netcore-2.1" title="BinaryFormatter Class">
-            BinaryFormatter
-          </a>: 2162ms
+          BinaryFormatter: 2162ms
         </li>
         <li>
-          <a href="https://github.com/neuecc/ZeroFormatter">
-            ZeroFormatter
-          </a>: 923ms
+          ZeroFormatter: 923ms
         </li>
       </ul>
       <p>
         I win!
-        This result isn't surprising as this is basically a hand-written serializer.
-        The other methods have to rely on reflection which can be a substantial burden.
+        This shouldn't come as a surprise. 
+        We're using a hand-coded serializer and working with it's specialty, unmanaged arrays. 
+        The other methods have to rely on reflection which can be a substantial burden, but they have the advantage of requiring less work to setup.
       </p>
       <p>
         The size of the files are also slightly different.
@@ -373,6 +393,7 @@
         The larger size of the ZeroFormatter file is almost assuredly from not converting the <code class="language-csharp"><span class="csharp-blue">char</span>[]</code> to UTF-8.
         It is a trade-off I've considered.
         With UTF-8 I save some bytes in the serialized format, but I have to allocate for a temporary <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and take the performance hit of conversion.
+        As we saw in the ZeroFormatter benchmark, with a large amount of small strings, this does add up.
       </p>
     </section>
   </section>
@@ -381,7 +402,7 @@
     <h3>Hack for .NET Framework</h3>
     </header>
     <p>
-      Without <code class="language-csharp"><span class="csharp-teal">Span&lt;<span class="csharp-blue">T</span>&gt;</code>,
+      Without <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">T</span>&gt;</code>,
       this method isn't feasible, we have to make do with <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-blue">byte</span>[], <span class="csharp-blue">int</span>, <span class="csharp-blue">int</span>)</code>.
       How can we convert an arbitrary type to a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>?
       Unions aren't quite right, if the type's size is larger than a single byte, the <code class="language-csharp">Length</code> property is much too small and the
@@ -448,13 +469,12 @@
       <h3>Concluding thoughts</h3>
     </header>
     <p>
-      If you're OK writing a bit of code to create read and write methods, this is a great way to serialize your data.
-      I don't consider that task particularly onerous, the alternatives are either much slower (BinaryFormatter), or require almost as much markup as this does code (ZeroFormatter).
+      In the end it all depends on your requirements.
+      Are you serializing bits and bytes? Do you have a need for speed?
+      If so, this is a great way to do it.
+      Otherwise, existing serialization libraries make it much easier to write maintainable code.
     </p>
-    <p>
-      It might be nice to re-do the performance testing with a variety of test-cases.
-      I think this method would gain even more ground, as complex structs are processed as a single <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and there's no book-keeping at all.
-    </p>
+    <p>If you missed the link to the code, here it is: <a href="https://github.com/jeanbern/jeanbern.github.io/blob/master/code/StreamExtensions.cs" title="StreamExtensions.cs">StreamExtensions.cs</a></p>
   </section>
 </article>
 </main>
