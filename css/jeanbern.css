@@ -15,11 +15,11 @@ body {
 }
 
 a {
-  color: #2196f3;
+  color: #0974CD;
   text-decoration: none;
 }
 a:visited {
-  color: #2196f3;
+  color: #0974CD;
 }
 
 /* Grid layout Copyright (c) 2016 Alligator.io */
@@ -193,16 +193,13 @@ body > aside {
 body > footer {
   grid-area: footer;
   text-align: center;
-  background: #78d2ff;
-  /*background: #608f90;*/
-  color: #ffffff;
 }
 
 body > footer a {
-  color: #ffffff;  
+  color: #000000;  
 }
 body > footer a:visited {
-  color: #ffffff;  
+  color: #000000;
 }
 
 /* Fill the vertical space */
