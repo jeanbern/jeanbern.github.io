@@ -10,7 +10,6 @@ body {
   display: grid;
   /* 100% of the viewport height */
   height: 100vh;
-  color: #757575;
   background-color: #f8f8f8;
   grid-gap: 1em; 
 }
@@ -181,6 +180,7 @@ body > nav h2 {
 body > main {
   min-width: 320px;
   grid-area: content;
+  color: #757575;
 }
 
 body > aside {
