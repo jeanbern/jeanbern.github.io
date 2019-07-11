@@ -143,6 +143,7 @@ body > nav {
   border: thick double #32a1ce;
   padding: .5em;
   margin-left: 0.5em;
+  background-color: #f8f8f8;
 }
 
 body > nav h2 {
@@ -160,6 +161,7 @@ body > aside {
   border: thick double #32a1ce;
   padding: .5em;
   margin-right: 0.5em;
+  background-color: #f8f8f8;
 }
 
 body > footer {
