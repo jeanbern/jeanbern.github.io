@@ -155,6 +155,7 @@ main section > svg {
 <article>
   <header>
     <h1>Custom Binary Serialization in C#</h1>
+    <p><em>Updated 2019-07-10</em></p>
   </header>
   
   <p>
@@ -164,7 +165,10 @@ main section > svg {
     but instead of using .NET libraries, we're going to roll our own for fun. 
     Afterwards, I'll do some performance testing to see how it stacks up.
   </p>
-  
+  <p>
+    In this article I'll be trying to write directly into the memory location of some structs and primitives.
+    By avoiding extra copying, allocation, and call stack depth, I can hopefully serialize my data faster.
+  </p>
   <section>
   <header>
   <h3>Requirements</h3>
@@ -212,7 +216,7 @@ main section > svg {
       </aside>
     </li>
     <li>
-      <p>The NuGet package:
+      <p>(Optional) The NuGet package:
         <a href="https://www.nuget.org/packages/System.Runtime.CompilerServices.Unsafe/">
           System.Runtime.CompilerServices.Unsafe
         </a>
@@ -261,31 +265,66 @@ main section > svg {
         <h4 class="no-start-end-margin">New hotness</h4>
       </header>
       <p>
-        With some trickery, <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;</code> can be made to point in-place to your existing struct.
-        The main hurdle here is that we don't start off with a byte[], so how can we use any of <code class="language-csharp"><span class="csharp-teal">Span</span></code>'s constructors?
-        That's where <code class="language-csharp">System.Runtime.CompilerServices.Unsafe</code> comes in.
-        With the <code class="language-csharp"><span class="csharp-teal">AsPointer</span></code> method, we can convert our struct and use the constructor
-        <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">Void</span>*, <span class="csharp-teal">Int32</span>)</code>.
+        First, some credit to others who have helped me refine this code. Thanks to their suggestions I was able to convert this from the unsafe form to a new safe version.
       </p>
+      <ul>
+        <li>
+            <a href="https://github.com/benaadams">Ben Adams</a><sup><a href="https://www.reddit.com/r/dotnet/comments/cbaisd/using_spant_and_the_unmanaged_constraint_for/ete81pk/" title="Ben Adams' comment on reddit part 1">[1]</a></sup><sup><a href="https://www.reddit.com/r/dotnet/comments/cbaisd/using_spant_and_the_unmanaged_constraint_for/eteafc3/" title="Ben Adams' comment on reddit part 2">[2]</a></sup>
+            and reddit user <a href="https://www.reddit.com/user/ThadeeusMaximus">ThadeeusMaximus</a><sup><a href="https://www.reddit.com/r/csharp/comments/cba8su/using_spant_and_the_unmanaged_constraint_for/etec3qu/" title="ThadeeusMaximus' comment on reddit">[3]</a></sup>
+            brought how to avoid an
+            <code class="language-csharp"><span class="csharp-blue">unsafe</span></code>
+            context by using <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.interopservices.memorymarshal?view=netstandard-2.1">MemoryMarshal</a>.
+          </li>
+          <li>
+            Reddit user <a href="https://www.reddit.com/user/ILMTitan">ILMTitan</a><sup><a href="https://www.reddit.com/r/csharp/comments/cba8su/using_spant_and_the_unmanaged_constraint_for/etek2sf/" title="ILMTitan's comment on reddit">[4]</a></sup>
+            demonstrated a safe version of <code><span class="csharp-blue">stackalloc</span></code>.
+          </li>
+      </ul>
       <p>
-        That constructor does require a length, so how do we get it?
-        With the <code class="language-csharp">unmanaged</code> constraint, we can use the <code class="language-csharp"><span class="csharp-blue">sizeof</span></code> operator on our type.
-        It's also a constraint for <code class="language-csharp"><span class="csharp-gold">AsPointer</span></code>, so we need it anyways.
-      </p>
-      <p>
-        .NET Core 2.1 added a new overload to <code class="language-csharp"><span class="csharp-teal">Stream</span>.<span class="csharp-gold">Write</span></code>:
+        .NET Core 2.1 added a new overload 
         <a href="https://docs.microsoft.com/en-us/dotnet/api/system.io.stream.write?view=netcore-2.1#System_IO_Stream_Write_System_ReadOnlySpan_System_Byte__" title="Write(ReadOnlySpan<Byte>)">
-          <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-teal">ReadOnlySpan</span>&lt;<span class="csharp-blue">byte</span>&gt;)</code></a>.
-        With this, we completely bypass using a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>.
+          <code class="language-csharp"><span class="csharp-teal">Stream</span>.<span class="csharp-gold">Write</span>(<span class="csharp-teal">ReadOnlySpan</span>&lt;<span class="csharp-blue">byte</span>&gt;)</code></a>.
+        With this, we will bypass creating a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and converting our struct.
         We simply point to our existing struct, and trick the stream into thinking it's a collection of bytes.
       </p>
-      <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe void</span> <span class="csharp-gold">Write</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>, <span class="csharp-teal">T</span> <span class="csharp-navy">value</span>)
+      <p>
+        With some trickery, <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;</code> can be made to point in-place to your existing struct.
+        The main hurdle here is that we don't start off with a byte[], so how can we use any of <code class="language-csharp"><span class="csharp-teal">Span</span></code>'s constructors?
+        There are two options, I'll explain how to use them and the different trade-offs involved.
+      </p>
+      <ol>
+        <li>
+          <code class="language-csharp">System.Runtime.CompilerServices.Unsafe</code>
+          <p>
+            With the <code class="language-csharp"><span class="csharp-teal">AsPointer</span></code> method, we can convert our struct and use the constructor
+            <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">Void</span>*, <span class="csharp-teal">Int32</span>)</code>.
+            It does require a length, so how do we get it?
+            With the <code class="language-csharp">unmanaged</code> constraint, we can use the <code class="language-csharp"><span class="csharp-blue">sizeof</span></code> operator on our type.
+            It's also a constraint for <code class="language-csharp"><span class="csharp-gold">AsPointer</span></code>, so we need it anyways.
+          </p>
+          <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe void</span> <span class="csharp-gold">Write</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>, <span class="csharp-teal">T</span> <span class="csharp-navy">value</span>)
     <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
 {
     <span class="csharp-blue">var</span> <span class="csharp-navy">pointer</span> = <span class="csharp-teal">Unsafe</span>.<span class="csharp-gold">AsPointer</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">value</span>);
     <span class="csharp-blue">var</span> <span class="csharp-navy">span</span> = <span class="csharp-blue">new</span> <span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">byte</span>&gt;(<span class="csharp-navy">pointer</span>, <span class="csharp-blue">sizeof</span>(<span class="csharp-teal">T</span>));
     <span class="csharp-navy">stream</span>.<span class="csharp-gold">Write</span>(<span class="csharp-navy">span</span>);
 }</code></pre>
+        </li>
+        <li>
+          <code class="language-csharp"><span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">CreateSpan</span>, <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">AsBytes</span></code>
+          <p>
+            With these, we avoid the unsafe context and some potential memory issues.
+          </p>
+          <pre><code class="language-csharp"><span class="csharp-blue">public static void</span> <span class="csharp-gold">Write</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>, <span class="csharp-teal">T</span> <span class="csharp-navy">value</span>)
+    <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">tSpan</span> = <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">CreateSpan</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">value</span>, 1);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">span</span> = <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">AsBytes</span>(<span class="csharp-navy">tSpan</span>);
+    <span class="csharp-navy">stream</span>.<span class="csharp-gold">Write</span>(<span class="csharp-navy">span</span>);
+}</code></pre>
+        </li>
+      </ol>
+      
     </section>
   </section>
   
@@ -294,10 +333,14 @@ main section > svg {
       <h3>Reading from a stream</h3>
     </header>
     <p>
-      This is very similar to writing. 
-      We save one allocation by reading into our final memory location, and that also saves one copy operation.
+      Again, we have two options.
+      Both save one allocation by reading into our final memory location, and avoid a copy operation by not using an intermediate byte[].
     </p>
-    <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe</span> <span class="csharp-teal">T</span> <span class="csharp-gold">Read</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>)
+    <ol>
+      <li>
+        <p>
+          Unsafe:
+          <pre><code class="language-csharp"><span class="csharp-blue">public static unsafe</span> <span class="csharp-teal">T</span> <span class="csharp-gold">Read</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>)
     <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
 {
     <span class="csharp-blue">var</span> <span class="csharp-navy">result</span> = <span class="csharp-blue">default</span>(<span class="csharp-teal">T</span>);
@@ -306,6 +349,69 @@ main section > svg {
     <span class="csharp-navy">stream</span>.<span class="csharp-gold">Read</span>(<span class="csharp-navy">span</span>);
     <span class="csharp-purple">return</span> <span class="csharp-navy">result</span>;
 }</code></pre>
+        </p>
+      </li>
+      <li>
+        <p>
+          Safe:
+          <pre><code class="language-csharp"><span class="csharp-blue">public static</span> <span class="csharp-teal">T</span> <span class="csharp-gold">Read</span>&lt;<span class="csharp-teal">T</span>&gt;(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>)
+    <span class="csharp-blue">where</span> <span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span>
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">result</span> = <span class="csharp-blue">default</span>(<span class="csharp-teal">T</span>);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">tSpan</span> = <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">CreateSpan</span>(<span class="csharp-blue">ref</span> <span class="csharp-navy">result</span>, 1);
+    <span class="csharp-blue">var</span> <span class="csharp-navy">span</span> = <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">AsBytes</span>(<span class="csharp-navy">tSpan</span>);
+    <span class="csharp-navy">stream</span>.<span class="csharp-gold">Read</span>(<span class="csharp-navy">span</span>);
+    <span class="csharp-purple">return</span> <span class="csharp-navy">result</span>;
+}</code></pre>
+        </p>
+      </li>
+    </ol>
+  </section>
+  
+  <section>
+    <header>
+      <h3>Differences between the two methods</h3>
+    </header>
+    <p>
+      Suprisingly, <code class="language-csharp"><span class="csharp-teal">MemoryMarshal</span></code> actually uses <code class="language-csharp">System.Runtime.CompilerServices.Unsafe</code> behind the scenes
+      (<a href="https://github.com/dotnet/corefx/blob/release/3.0/src/Common/src/CoreLib/System/Runtime/InteropServices/MemoryMarshal.Fast.cs#L35" title="MemoryMarshal.Fast.cs line 35">corefx source</a>).
+      <br/>
+      The big difference is that the generic constraint there is on
+      <code class="language-csharp"><span class="csharp-teal">T</span> : <span class="csharp-teal">struct</span></code>
+      and not
+      <code class="language-csharp"><span class="csharp-teal">T</span> : <span class="csharp-blue">unmanaged</span></code>
+      like our code.
+      Because of this they have to make sure that
+      <code class="language-csharp"><span class="csharp-teal">RuntimeHelpers</span>.<span class="csharp-gold">IsReferenceOrContainsReferences</span>&lt;<span class="csharp-teal">T</span>&gt;()</code>
+      is false.
+    </p>
+    <p>
+      I found the code for it <a href="https://github.com/dotnet/coreclr/blob/master/src/vm/jitinterface.cpp#L7486" title="getILIntrinsicImplementationForRuntimeHelpers">deep in the JIT interface</a>.
+    </p>
+<pre><code>bool getILIntrinsicImplementationForRuntimeHelpers(MethodDesc * ftn,
+    CORINFO_METHOD_INFO * methInfo)
+{
+...
+    if (!methodTable-&gt;IsValueType() || methodTable-&gt;ContainsPointers())
+    {
+        methInfo->ILCode = const_cast&lt;BYTE*&gt;(returnTrue);
+    }
+    else
+    {
+        methInfo-&gt;ILCode = const_cast&lt;BYTE*&gt;(returnFalse);
+    }
+...
+}</code></pre>
+    <p>
+      <a href="https://github.com/dotnet/corefx/blob/release/3.0/src/Common/src/CoreLib/System/Type.cs#L110"><code class="language-csharp"><span class="csharp-teal">Type</span>.IsValueType</code></a>
+      calls <a href="https://github.com/dotnet/corefx/blob/release/3.0/src/Common/src/CoreLib/System/Type.Helpers.cs#L319"><code class="language-csharp">IsSubclassOf</code></a>, 
+      a small method that should have no problems executing quickly.
+      <a href="https://github.com/dotnet/coreclr/blob/b614f4f5529296cac834e54f2fa4bc540a61a04d/src/vm/methodtable.h#L1811"><code class="language-csharp"><span class="csharp-gold">ContainsPointers</span>()</code></a>
+      is a flag check from C++ code and is equally speedy.
+    </p>
+    <p>
+      So the first call to <code><span class="csharp-gold">IsReferenceOrContainsReferences</span></code> is fairly cheap, and the JIT compiler may be able to optimize it out afterwards.
+    </p>
   </section>
   
   <section>
@@ -321,36 +427,168 @@ main section > svg {
     <header>
       <h3>Performance</h3>
     </header>
+    
     <section>
       <header>
-        <h4><a href="https://github.com/neuecc/ZeroFormatter">
-            ZeroFormatter
-          </a> benchmark</h4>
+        <h4>Safe vs Unsafe</h4>
       </header>
       <p>
-        Adapting the benchmark used by ZeroFormatter, I'll compare this custom serialization method against it in a few scenarios.
+        I ran a benchmark 4 times.
+        The first run was excluded to warm up the profiler.
+        The median of the other 3 was kept as the result.
+        I checked to make sure there were no weird outliers in the data, everything looks good.
+      </p>
+      <details>
+        <summary>
+          The raw data if you care for it.
+        </summary>
+        <p>
+          This was run after I'd generated my graph.
+          The SVG is already minified and I didn't keep a copy of the original.
+          The results are similar, though a bit faster for all cases. I'm going to blame corporate anti-virus.
+        </p>
+<pre>Person
+ZeroFormatter
+      Serialize		24.6626 ms
+    Deserialize		15.042 ms
+    Binary Size		50.00 B
+SafeFormatter
+      Serialize		22.2043 ms
+    Deserialize		23.3115 ms
+    Binary Size		26.00 B
+UnsafeFormatter
+      Serialize		23.8769 ms
+    Deserialize		24.2574 ms
+    Binary Size		26.00 B
+Person[]
+ZeroFormatter
+      Serialize		14486.7296 ms
+    Deserialize		17258.767 ms
+    Binary Size		48.83 KB
+SafeFormatter		
+      Serialize		23333.3715 ms
+    Deserialize		24200.0206 ms
+    Binary Size		25.39 KB
+UnsafeFormatter
+      Serialize		23882.1373 ms
+    Deserialize		24917.1850 ms
+    Binary Size		25.39 KB
+int
+ZeroFormatter
+      Serialize		2.9242 ms
+    Deserialize		1.6953 ms
+    Binary Size		4.00 B
+SafeFormatter
+      Serialize		1.7977 ms
+    Deserialize		1.9589 ms
+    Binary Size		4.00 B
+UnsafeFormatter
+      Serialize		1.8955 ms
+    Deserialize		1.8404 ms
+    Binary Size		4.00 B
+Vector3
+ZeroFormatter
+      Serialize		4.7405 ms
+    Deserialize		3.0243 ms
+    Binary Size		12.00 B
+SafeFormatter
+      Serialize		1.9061 ms
+    Deserialize		2.3206 ms
+    Binary Size		12.00 B
+UnsafeFormatter
+      Serialize		2.0275 ms
+    Deserialize		1.9824 ms
+    Binary Size		12.00 B
+string
+ZeroFormatter
+      Serialize		34284.1008 ms
+    Deserialize		31301.6707 ms
+    Binary Size		301.84 KB
+SafeFormatter
+      Serialize		19599.1895 ms
+    Deserialize		29779.7524 ms
+    Binary Size		301.84 KB
+UnsafeFormatter
+      Serialize		19569.0796 ms
+    Deserialize		30918.9688 ms
+    Binary Size		301.84 KB
+Vector3[]
+ZeroFormatter
+      Serialize		260.0052 ms
+    Deserialize		200.6082 ms
+    Binary Size		1.18 KB
+SafeFormatter
+      Serialize		6.1998 ms
+    Deserialize		18.7903 ms
+    Binary Size		1.18 KB
+UnsafeFormatter
+      Serialize		7.4503 ms
+    Deserialize		20.1956 ms
+    Binary Size		1.18 KB</pre>
+      </details>
+      <p>
+        The two methods are neck and neck.
+        It looks like the safe version is a teeny bit faster, but it's so small that I'd consider it observational error.
+      </p>
+      <p>
+        Therefore, I would stick with the safe version.
+        Glad I tested both!
+      </p>
+    </section>
+    
+    <section>
+      <header>
+        <h4>ZeroFormatter benchmark</h4>
+      </header>
+      <p>
+        Adapting the benchmark used by <a href="https://github.com/neuecc/ZeroFormatter">ZeroFormatter</a>, I'll compare this custom serialization method against it in a few scenarios.
         It's not exactly a fair test, as all of my usages are hand-coded and ZeroFormatter has to use reflection.
       </p>
       <p>
         The code can all be found <a href="https://github.com/jeanbern/jeanbern.github.io/blob/master/code/ZeroFormatterBenchmark.cs" title="ZeroFormatterBenchmark.cs">on github</a>.
       </p>
-      <svg viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:1px}text.zero{fill:#ff8c00}text.cool{fill:#00f}text.case{font-size:2px}path{stroke:#000;fill:transparent;stroke-width:.1}path.cool,path.zero{fill:#ffa07a;stroke-width:0}path.cool{fill:#e0ffff}</style><text x="25" y="7">Legend:</text><text class="zero case" x="30" y="6">ZeroFormatter</text><text class="cool case" x="30" y="8">Custom</text><text class="case" x="30" y="12">Winner per category is colored</text><path class="zero" d="M1 60V29.19h1V60z"/><text x="1.8" y="28.9" transform="rotate(270 1.8 28.9)">30.81ms</text><path class="cool" d="M2 60V40.04h1V60z"/><text x="2.8" y="39.7" transform="rotate(270 2.8 39.7)">19.96ms</text><path class="zero" d="M4 60V44.79h1V60z"/><text x="4.8" y="44.5" transform="rotate(270 4.8 44.5)">15.21ms</text><path class="cool" d="M5 60V37.02h1V60z"/><text x="5.8" y="36.7" transform="rotate(270 5.8 36.7)">22.98ms</text><path class="zero" d="M7 60V10h1v50z"/><text x="7.8" y="9.7" transform="rotate(270 7.8 9.7)">50B</text><path class="cool" d="M8 60V34h1v26z"/><text x="8.8" y="33.7" transform="rotate(270 8.8 33.7)">26B</text><text class="cool" x="1" y="63.75" transform="rotate(290 1 63.75)">Serialize</text><text class="zero" x="3.9" y="64.75" transform="rotate(290 3.9 64.75)">Deserialize</text><text class="cool" x="6.9" y="64.5" transform="rotate(290 6.9 64.5)">Size (byte)</text><text class="case" x="3" y="67">Person</text><path class="zero" d="M11 60V45.48h1V60z"/><text x="11.8" y="45.2" transform="rotate(270 11.8 45.2)">14.52s</text><path class="cool" d="M12 60V37.99h1V60z"/><text x="12.8" y="37.7" transform="rotate(270 12.8 37.7)">22.01s</text><path class="zero" d="M14 60V42.72h1V60z"/><text x="14.8" y="42.4" transform="rotate(270 14.8 42.4)">17.28s</text><path class="cool" d="M15 60V38.4h1V60z"/><text x="15.8" y="38.1" transform="rotate(270 15.8 38.1)">21.60s</text><path class="zero" d="M17 60V11.17h1V60z"/><text x="17.8" y="10.9" transform="rotate(270 17.8 10.9)">48.83MB</text><path class="cool" d="M18 60V34.61h1V60z"/><text x="18.8" y="34.3" transform="rotate(270 18.8 34.3)">25.39MB</text><text class="zero" x="11" y="63.75" transform="rotate(290 11 63.75)">Serialize</text><text class="zero" x="13.9" y="64.75" transform="rotate(290 13.9 64.75)">Deserialize</text><text class="cool" x="16.9" y="64.5" transform="rotate(290 16.9 64.5)">Size (MB)</text><text class="case" x="12" y="67">Person[]</text><path class="zero" d="M21 60v-4.58h1V60z"/><text x="21.8" y="55.1" transform="rotate(270 21.8 55.1)">4.58ms</text><path class="cool" d="M22 60v-2.59h1V60z"/><text x="22.8" y="57.1" transform="rotate(270 22.8 57.1)">2.59ms</text><path class="zero" d="M24 60v-2.31h1V60z"/><text x="24.8" y="57.4" transform="rotate(270 24.8 57.4)">2.31ms</text><path class="cool" d="M25 60v-2.21h1V60z"/><text x="25.8" y="57.5" transform="rotate(270 25.8 57.5)">2.21ms</text><path class="zero" d="M27 60v-4h1v4z"/><text x="27.8" y="55.7" transform="rotate(270 27.8 55.7)">4B</text><path class="cool" d="M28 60v-4h1v4z"/><text x="28.8" y="55.7" transform="rotate(270 28.8 55.7)">4B</text><text class="cool" x="21" y="63.75" transform="rotate(290 21 63.75)">Serialize</text><text class="cool" x="23.9" y="64.75" transform="rotate(290 23.9 64.75)">Deserialize</text><text x="26.9" y="64.5" transform="rotate(290 26.9 64.5)">Size (byte)</text><text class="case" x="24" y="67">int</text><path class="zero" d="M31 60v-5.6h1V60z"/><text x="31.8" y="54.1" transform="rotate(270 31.8 54.1)">5.60ms</text><path class="cool" d="M32 60v-2.01h1V60z"/><text x="32.8" y="57.7" transform="rotate(270 32.8 57.7)">2.01ms</text><path class="zero" d="M34 60v-3.84h1V60z"/><text x="34.8" y="55.9" transform="rotate(270 34.8 55.9)">3.84ms</text><path class="cool" d="M35 60v-1.97h1V60z"/><text x="35.8" y="57.7" transform="rotate(270 35.8 57.7)">1.97ms</text><path class="zero" d="M37 60V48h1v12z"/><text x="37.8" y="47.7" transform="rotate(270 37.8 47.7)">12B</text><path class="cool" d="M38 60V48h1v12z"/><text x="38.8" y="47.7" transform="rotate(270 38.8 47.7)">12B</text><text class="cool" x="31" y="63.75" transform="rotate(290 31 63.75)">Serialize</text><text class="cool" x="33.9" y="64.75" transform="rotate(290 33.9 64.75)">Deserialize</text><text x="36.9" y="64.5" transform="rotate(290 36.9 64.5)">Size (byte)</text><text class="case" x="32" y="67">Vector3</text><path class="zero" d="M41 60V23.72h1V60z"/><text x="41.8" y="23.4" transform="rotate(270 41.8 23.4)">36.28s</text><path class="cool" d="M42 60V40.41h1V60z"/><text x="42.8" y="40.1" transform="rotate(270 42.8 40.1)">19.59s</text><path class="zero" d="M44 60V29.68h1V60z"/><text x="44.8" y="29.4" transform="rotate(270 44.8 29.4)">30.32s</text><path class="cool" d="M45 60V32.84h1V60z"/><text x="45.8" y="32.5" transform="rotate(270 45.8 32.5)">27.16s</text><path class="zero" d="M47 60V29.82h1V60z"/><text x="47.8" y="29.5" transform="rotate(270 47.8 29.5)">30.18x10MB</text><path class="cool" d="M48 60V29.82h1V60z"/><text x="48.8" y="29.5" transform="rotate(270 48.8 29.5)">30.18x10MB</text><text class="cool" x="41" y="63.75" transform="rotate(290 41 63.75)">Serialize</text><text class="cool" x="43.9" y="64.75" transform="rotate(290 43.9 64.75)">Deserialize</text><text x="46.9" y="64.5" transform="rotate(290 46.9 64.5)">Size (MB)</text><text class="case" x="43" y="67">string</text><path class="zero" d="M51 60V34.57h1V60z"/><text x="51.8" y="34.3" transform="rotate(270 51.8 34.3)">25.43x10ms</text><path class="cool" d="M52 60v-5.75h1V60z"/><text x="52.8" y="53.9" transform="rotate(270 52.8 53.9)">5.75x10ms</text><path class="zero" d="M54 60V39.92h1V60z"/><text x="54.8" y="39.6" transform="rotate(270 54.8 39.6)">20.08x10ms</text><path class="cool" d="M55 60v-2.07h1V60z"/><text x="55.8" y="57.6" transform="rotate(270 55.8 57.6)">2.07x10ms</text><path class="zero" d="M57 60v-1.18h1V60z"/><text x="57.8" y="58.52" transform="rotate(270 57.8 58.52)">1.18MB</text><path class="cool" d="M58 60v-1.18h1V60z"/><text x="58.8" y="58.52" transform="rotate(270 58.8 58.52)">1.18MB</text><text class="cool" x="51" y="63.75" transform="rotate(290 51 63.75)">Serialize</text><text class="cool" x="53.9" y="64.75" transform="rotate(290 53.9 64.75)">Deserialize</text><text x="56.9" y="64.5" transform="rotate(290 56.9 64.5)">Size (byte)</text><text class="case" x="51" y="67">Vector3[]</text><path d="M0 0v60h60V0z"/></svg>
+      <svg viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg"><style>text{font-family:Times New Roman;font-size:1px}text.zero{fill:#ff8c00}text.cool{fill:#00f}text.case{font-size:2px}path{stroke:#000;fill:transparent;stroke-width:.1}path.cool,path.zero{fill:#ffa07a;stroke-width:0}path.cool{fill:#e0ffff}</style><text x="25" y="7">Legend:</text><text class="zero case" x="30" y="6">ZeroFormatter</text><text class="cool case" x="30" y="8">Custom</text><text class="case" x="30" y="12">Winner per category is colored</text><path class="zero" d="M1 60V29.19h1V60z"/><text x="1.8" y="28.9" transform="rotate(270 1.8 28.9)">30.81ms</text><path class="cool" d="M2 60V40.04h1V60z"/><text x="2.8" y="39.7" transform="rotate(270 2.8 39.7)">19.96ms</text><path class="zero" d="M4 60V44.79h1V60z"/><text x="4.8" y="44.5" transform="rotate(270 4.8 44.5)">15.21ms</text><path class="cool" d="M5 60V37.02h1V60z"/><text x="5.8" y="36.7" transform="rotate(270 5.8 36.7)">22.98ms</text><path class="zero" d="M7 60V10h1v50z"/><text x="7.8" y="9.7" transform="rotate(270 7.8 9.7)">50B</text><path class="cool" d="M8 60V34h1v26z"/><text x="8.8" y="33.7" transform="rotate(270 8.8 33.7)">26B</text><text class="cool" x="1" y="63.75" transform="rotate(290 1 63.75)">Serialize</text><text class="zero" x="3.9" y="64.75" transform="rotate(290 3.9 64.75)">Deserialize</text><text class="cool" x="6.9" y="64.5" transform="rotate(290 6.9 64.5)">Size (byte)</text><text class="case" x="3" y="67">Person</text><path class="zero" d="M11 60V45.48h1V60z"/><text x="11.8" y="45.2" transform="rotate(270 11.8 45.2)">14.52s</text><path class="cool" d="M12 60V37.99h1V60z"/><text x="12.8" y="37.7" transform="rotate(270 12.8 37.7)">22.01s</text><path class="zero" d="M14 60V42.72h1V60z"/><text x="14.8" y="42.4" transform="rotate(270 14.8 42.4)">17.28s</text><path class="cool" d="M15 60V38.4h1V60z"/><text x="15.8" y="38.1" transform="rotate(270 15.8 38.1)">21.60s</text><path class="zero" d="M17 60V11.17h1V60z"/><text x="17.8" y="10.9" transform="rotate(270 17.8 10.9)">48.83KB</text><path class="cool" d="M18 60V34.61h1V60z"/><text x="18.8" y="34.3" transform="rotate(270 18.8 34.3)">25.39KB</text><text class="zero" x="11" y="63.75" transform="rotate(290 11 63.75)">Serialize</text><text class="zero" x="13.9" y="64.75" transform="rotate(290 13.9 64.75)">Deserialize</text><text class="cool" x="16.9" y="64.5" transform="rotate(290 16.9 64.5)">Size (KB)</text><text class="case" x="12" y="67">Person[]</text><path class="zero" d="M21 60v-4.58h1V60z"/><text x="21.8" y="55.1" transform="rotate(270 21.8 55.1)">4.58ms</text><path class="cool" d="M22 60v-2.59h1V60z"/><text x="22.8" y="57.1" transform="rotate(270 22.8 57.1)">2.59ms</text><path class="zero" d="M24 60v-2.31h1V60z"/><text x="24.8" y="57.4" transform="rotate(270 24.8 57.4)">2.31ms</text><path class="cool" d="M25 60v-2.21h1V60z"/><text x="25.8" y="57.5" transform="rotate(270 25.8 57.5)">2.21ms</text><path class="zero" d="M27 60v-4h1v4z"/><text x="27.8" y="55.7" transform="rotate(270 27.8 55.7)">4B</text><path class="cool" d="M28 60v-4h1v4z"/><text x="28.8" y="55.7" transform="rotate(270 28.8 55.7)">4B</text><text class="cool" x="21" y="63.75" transform="rotate(290 21 63.75)">Serialize</text><text class="cool" x="23.9" y="64.75" transform="rotate(290 23.9 64.75)">Deserialize</text><text x="26.9" y="64.5" transform="rotate(290 26.9 64.5)">Size (byte)</text><text class="case" x="24" y="67">int</text><path class="zero" d="M31 60v-5.6h1V60z"/><text x="31.8" y="54.1" transform="rotate(270 31.8 54.1)">5.60ms</text><path class="cool" d="M32 60v-2.01h1V60z"/><text x="32.8" y="57.7" transform="rotate(270 32.8 57.7)">2.01ms</text><path class="zero" d="M34 60v-3.84h1V60z"/><text x="34.8" y="55.9" transform="rotate(270 34.8 55.9)">3.84ms</text><path class="cool" d="M35 60v-1.97h1V60z"/><text x="35.8" y="57.7" transform="rotate(270 35.8 57.7)">1.97ms</text><path class="zero" d="M37 60V48h1v12z"/><text x="37.8" y="47.7" transform="rotate(270 37.8 47.7)">12B</text><path class="cool" d="M38 60V48h1v12z"/><text x="38.8" y="47.7" transform="rotate(270 38.8 47.7)">12B</text><text class="cool" x="31" y="63.75" transform="rotate(290 31 63.75)">Serialize</text><text class="cool" x="33.9" y="64.75" transform="rotate(290 33.9 64.75)">Deserialize</text><text x="36.9" y="64.5" transform="rotate(290 36.9 64.5)">Size (byte)</text><text class="case" x="32" y="67">Vector3</text><path class="zero" d="M41 60V23.72h1V60z"/><text x="41.8" y="23.4" transform="rotate(270 41.8 23.4)">36.28s</text><path class="cool" d="M42 60V40.41h1V60z"/><text x="42.8" y="40.1" transform="rotate(270 42.8 40.1)">19.59s</text><path class="zero" d="M44 60V29.68h1V60z"/><text x="44.8" y="29.4" transform="rotate(270 44.8 29.4)">30.32s</text><path class="cool" d="M45 60V32.84h1V60z"/><text x="45.8" y="32.5" transform="rotate(270 45.8 32.5)">27.16s</text><path class="zero" d="M47 60V29.82h1V60z"/><text x="47.8" y="29.5" transform="rotate(270 47.8 29.5)">30.18x10KB</text><path class="cool" d="M48 60V29.82h1V60z"/><text x="48.8" y="29.5" transform="rotate(270 48.8 29.5)">30.18x10KB</text><text class="cool" x="41" y="63.75" transform="rotate(290 41 63.75)">Serialize</text><text class="cool" x="43.9" y="64.75" transform="rotate(290 43.9 64.75)">Deserialize</text><text x="46.9" y="64.5" transform="rotate(290 46.9 64.5)">Size (KB)</text><text class="case" x="43" y="67">string</text><path class="zero" d="M51 60V34.57h1V60z"/><text x="51.8" y="34.3" transform="rotate(270 51.8 34.3)">25.43x10ms</text><path class="cool" d="M52 60v-5.75h1V60z"/><text x="52.8" y="53.9" transform="rotate(270 52.8 53.9)">5.75x10ms</text><path class="zero" d="M54 60V39.92h1V60z"/><text x="54.8" y="39.6" transform="rotate(270 54.8 39.6)">20.08x10ms</text><path class="cool" d="M55 60v-2.07h1V60z"/><text x="55.8" y="57.6" transform="rotate(270 55.8 57.6)">2.07x10ms</text><path class="zero" d="M57 60v-1.18h1V60z"/><text x="57.8" y="58.52" transform="rotate(270 57.8 58.52)">1.18KB</text><path class="cool" d="M58 60v-1.18h1V60z"/><text x="58.8" y="58.52" transform="rotate(270 58.8 58.52)">1.18KB</text><text class="cool" x="51" y="63.75" transform="rotate(290 51 63.75)">Serialize</text><text class="cool" x="53.9" y="64.75" transform="rotate(290 53.9 64.75)">Deserialize</text><text x="56.9" y="64.5" transform="rotate(290 56.9 64.5)">Size (byte)</text><text class="case" x="51" y="67">Vector3[]</text><path d="M0 0v60h60V0z"/></svg>
       <p>
         As predicted, our serializer had excellent performance in the struct cases.
         <br/>
         We do lose out a few times. I'm guessing that in the case of <code class="language-csharp"><span class="csharp-blue">Person</span></code> and <code class="language-csharp"><span class="csharp-blue">Person</span>[]</code>, the UTF-8 encoding adds a lot of overhead.
       </p>
     </section>
+    
+    <section>
+      <header>
+        <h4>Experimenting with UTF-8</h4>
+      </header>
+      <p>
+        If we avoid remove the UTF-8 code, we can use a pre-built methods for reading strings from the stream.
+        Note that the memory footprint of strings essentially doubles.
+      </p>
+    </section>
+<pre><code class="language-csharp"><span class="csharp-blue">public static string</span> <span class="csharp-gold">ReadString</span>(<span class="csharp-blue">this</span> <span class="csharp-teal">Stream</span> <span class="csharp-navy">stream</span>)
+{
+    <span class="csharp-blue">var</span> <span class="csharp-navy">length</span> = <span class="csharp-navy">stream</span>.<span class="csharp-gold">Read</span>&lt;<span class="csharp-blue">int</span>&gt;();
+    <span class="csharp-purple">return</span> <span class="csharp-blue">string</span>.<span class="csharp-gold">Create</span>(<span class="csharp-navy">length</span>, <span class="csharp-navy">stream</span>, (<span class="csharp-navy">chars</span>, <span class="csharp-navy">streamToUse</span>) =&gt;
+    {
+        <span class="csharp-blue">var</span> <span class="csharp-navy">bytes</span> = <span class="csharp-teal">MemoryMarshal</span>.<span class="csharp-gold">AsBytes</span>(<span class="csharp-navy">chars</span>);
+        <span class="csharp-navy">streamToUse</span>.<span class="csharp-gold">Read</span>(<span class="csharp-navy">bytes</span>);
+    });
+}
+</code></pre>
+      <p>
+        The resulting times go down by a lot!
+        <br/><code class="language-csharp"><span class="csharp-blue">string</span></code> goes from 19599 ms for deserializing and 29779 ms for serializing, to 2121 ms and 7569 ms respectively.
+        <br/><code class="language-csharp"><span class="csharp-teal">Person</span></code> also sees improvement. It's not as drastic but does make it faster than ZeroFormatter.
+      </p>
     <section>
       <header>
         <h4>My use-case</h4>
       </header>
       <p>
         This is the data structure storing my DAWG from <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">the third article</a> in that series.
-        I'm going to test it against ZeroFormatter again, as well as .NET's
+        I'm going to use it to test our new method against ZeroFormatter as well as .NET's
         <a href="https://docs.microsoft.com/en-us/dotnet/api/system.runtime.serialization.formatters.binary.binaryformatter?view=netcore-2.1" title="BinaryFormatter Class">
           BinaryFormatter</a>.
-        When loaded with a typical dictionary it would consume just over 1.4MB of memory.
+        When loaded with a typical dictionary it consumes just over 1.4MB of memory.
       </p>
       <pre><code class="language-csharp"><span class="csharp-blue">private readonly int</span> _terminalNodeIndex;
 <span class="csharp-blue">private readonly int</span> _rootNodeIndex;
@@ -397,9 +635,7 @@ main section > svg {
         Impressively, BinaryFormatter is very close to the custom format in size.
         I'm guessing the slight difference is from storing type information.
         The larger size of the ZeroFormatter file is almost assuredly from not converting the <code class="language-csharp"><span class="csharp-blue">char</span>[]</code> to UTF-8.
-        It is a trade-off I've considered.
-        With UTF-8 I save some bytes in the serialized format, but I have to allocate for a temporary <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> and take the performance hit of conversion.
-        As we saw in the ZeroFormatter benchmark, with a large amount of small strings, this does add up.
+        I'm surprised it doesn't, as it's output for <code class="language-csharp"><span class="csharp-blue">string</span></code> matched our size.
       </p>
     </section>
   </section>
@@ -409,9 +645,9 @@ main section > svg {
     </header>
     <p>
       Without <code class="language-csharp"><span class="csharp-teal">Span</span>&lt;<span class="csharp-blue">T</span>&gt;</code>,
-      this method isn't feasible, we have to make do with <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-blue">byte</span>[], <span class="csharp-blue">int</span>, <span class="csharp-blue">int</span>)</code>.
+      this method isn't feasible and we have to make do with <code class="language-csharp"><span class="csharp-gold">Write</span>(<span class="csharp-blue">byte</span>[], <span class="csharp-blue">int</span>, <span class="csharp-blue">int</span>)</code>.
       How can we convert an arbitrary type to a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code>?
-      Unions aren't quite right, if the type's size is larger than a single byte, the <code class="language-csharp">Length</code> property is much too small and the
+      Unions aren't quite right: if the type's size is larger than a single byte, the <code class="language-csharp">Length</code> property is much too small and the
       <code class="language-csharp"><span class="csharp-teal">Stream</span></code> methods will complain when they perform bounds checking.
       Unsafe pointers won't do either, casting to a <code class="language-csharp"><span class="csharp-blue">byte</span>[]</code> blows up.
       Using both, we can do some bad things...
@@ -468,6 +704,7 @@ main section > svg {
       This relies on the memory layout of arrays.
       I don't know what kind of guarantee you can expect that it will always be at the same location.
       This is truly an example of: <blockquote><em>It works on my PC</em></blockquote>
+      Not to mention it requires endianness to match.
     </p>
   </section>
   <section>

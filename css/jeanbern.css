@@ -213,7 +213,7 @@ main p {
   margin-bottom: 0;
 }
 
-main section > * {
+main section > p, main section > figure, main section > header, main section > svg, main section > pre, main section > details {
   margin-left: 1em;
 }
 
