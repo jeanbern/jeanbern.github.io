@@ -153,7 +153,7 @@ body > nav h2 {
 body > main {
   min-width: 320px;
   grid-area: content;
-  color: #757575;
+  color: #333;
 }
 
 body > aside {
