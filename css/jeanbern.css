@@ -60,7 +60,6 @@ body > aside > figure {
     max-width: 200px;
   }
   body > aside {
-    max-height: 200px;
     display: flex;
     margin-left: 0.5em;
   }
@@ -85,6 +84,10 @@ body > aside > figure {
   body > main {
     margin-right: .5em;
   }
+  
+  body > nav {
+    height: min-content;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -100,8 +103,6 @@ body > aside > figure {
     grid-template-rows: auto 1fr auto;
   }
   body > nav {
-    max-width: 200px;
-    background-color: #f0f0f0;
     height: min-content;
   }
   
@@ -109,8 +110,6 @@ body > aside > figure {
     width: 100%
   }
   body > aside {
-    max-width: 200px;
-    background-color: #f0f0f0;
     height: min-content;
   }
 }
