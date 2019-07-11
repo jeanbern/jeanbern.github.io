@@ -288,8 +288,11 @@ span.csharp-blue {
 span.csharp-navy {
   color: #1f377f;
 }
+
+/* real color should be: 2b91af, changed for accessibility */
+
 span.csharp-teal {
-  color: #2b91af;
+  color: #26809C;
 }
 span.csharp-brown {
   color: #a31515;
