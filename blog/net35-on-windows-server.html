@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143311168-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-143311168-1');
+  </script>
+  <title>Installing .NET 3.5 on Windows Server</title>
+  <meta name="author" content="Jean-Bernard Pellerin"/>
+  <meta name="description" content="How to install .NET 3.5 on Windows Server without the iso."/>
+  <meta name="generator" content="100% organic human"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="canonical" href="https://jbp.dev/blog/net35-on-windows-server.html"/>
+  <link rel="license" href="https://jbp.dev/licenses.html"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/normalize.css"/>
+  <link rel="stylesheet" href="https://jbp.dev/css/jeanbern.css"/>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "Organization",
+            "@id": "https://jbp.dev/#organization",
+            "name": "jbp.dev",
+            "url": "https://jbp.dev/",
+            "sameAs": [
+                "https://www.facebook.com/jbpellerin",
+                "https://www.linkedin.com/in/jean-bernard-pellerin-026bbb23",
+                "https://twitter.com/jeanbpellerin"
+            ],
+            "logo": {
+                "@type": "ImageObject",
+                "@id": "https://jbp.dev/#logo",
+                "url": "https://jbp.dev/img/bird.jpg",
+                "caption": "jbp.dev"
+            },
+            "image": {
+                "@id": "https://jbp.dev/#logo"
+            }
+        },
+        {
+            "@type": "WebSite",
+            "@id": "https://jbp.dev/#website",
+            "url": "https://jbp.dev/",
+            "name": "jbp.dev",
+            "publisher": {
+                "@id": "https://jbp.dev/#organization"
+            }/*,
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://jbp.dev/?s={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }*/
+        },
+        {
+            "@type": "WebPage",
+            "@id": "https://jbp.dev/#webpage",
+            "url": "https://jbp.dev/net35-on-windows-server.html",
+            "inLanguage": "en",
+            "name": "Installing .NET 3.5 on Windows Server",
+            "isPartOf": {
+                "@id": "https://jbp.dev/#website"
+            },
+            "about": {
+                "@id": "https://jbp.dev/#organization"
+            },
+            "description": "How to install .NET 3.5 on Windows Server without the iso."
+        }
+    ]
+}
+  </script>
+</head>
+<body>
+
+<header>
+  <h2>
+    JB's BLOG
+  </h2>
+</header>
+
+<nav>
+  <section>
+    <header>
+      <h2>Breadcrumb</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/" title="jbp.dev - Homepage">Home</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/net35-on-windows-server.html" title="How to install .NET 3.5 on Windows Server without the iso.">Blog - Installing .NET 3.5 on Windows Server</a>
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>DAWG series</h2>
+    </header>
+    <ol>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-basics.html" title="Directed Acyclic Word Graphs - Part 1 - The Basics">The Basics</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-first-implementation.html" title="Directed Acyclic Word Graphs - Part 2 - First Implementation in C#">First Implementation in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/dawg-memory-footprint.html" title="Directed Acyclic Word Graphs - Part 3 - Reducing DAWG memory footprint">Reducing DAWG memory footprint</a>
+      </li>
+      <li>
+        Using the DAWG to find spelling errors
+      </li>
+      <li>
+        DAWG performance profiling - part 1
+      </li>
+      <li>
+        Potential DAWG performance improvements
+      </li>
+      <li>
+        Speedy DAWG
+      </li>
+      <li>
+        DAWG performance profiling - part 2
+      </li>
+    </ol>
+  </section>
+  <section>
+    <header>
+      <h2>Other posts</h2>
+    </header>
+    <ul>
+      <li>
+        <a href="https://jbp.dev/blog/custom-binary-serialization.html" title="Custom Binary Serialization in C#">Custom Binary Serialization in C#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/signing-net.html" title="Signing in .NET">Signing in .NET#</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/custom-app-config.html" title="Creating a custom configuration section in .NET">Creating a custom app.config</a>
+      </li>
+      <li>
+        <a href="https://jbp.dev/blog/net35-on-windows-server.html" title="How to install .NET 3.5 on Windows Server without the iso.">Installing .NET 3.5 on Windows Server</a>
+      </li>
+    </ul>
+  </section>
+</nav>
+
+<main>
+<article>
+  <header>
+    <h1>How to install .NET 3.5 on Windows Server without the iso</h1>
+  </header>
+  <section>
+    <header>
+      <h2>The Problem</h2>
+    </header>
+    <p>
+      On Microsoft's newer operating systems, (I encountered this on Windows Server 2016) the
+        <a href="https://support.microsoft.com/en-us/help/2734782/net-framework-3-5-installation-error-0x800f0906-0x800f081f-0x800f0907" title=".NET Framework 3.5 installation error - More Information">.NET Framework 3.5 is a Feature on Demand.</a>
+      The binaries for it aren't included in an installation, but they are present on the iso.
+    </p>
+    <p>
+      The <a href="https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/enable-net-framework-35-by-using-the-add-roles-and-features-wizard" title="Enable .NET Framework 3.5 by using the Add Roles and Features Wizard">commonly recommended way</a>
+        of installing it is to use the "Add Role and Features" tool.
+      A step that's also usually mentioned is to <a href="https://www.dtonias.com/install-net-framework-3-5-windows-server-2016/" title="Install .NET Framework 3.5 on Windows Server 2016">pay heed to the warning</a> on the confirmation tab and to click:
+    </p>
+    <p>
+      &nbsp;&nbsp;<i>Specify an alternative source path</i>
+    </p>
+    <p>
+      This might fix your problem, but for me it still requires the iso.
+      I didn't have the iso, this was a VM granted to me by IT and asking them to install it would have taken too long.
+    </p>
+    <section>
+      <header>
+        <h3>Possible error codes</h3>
+        <a href="https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/net-framework-35-deployment-errors-and-resolution-steps" title=".NET Framework 3.5 deployment errors and resolution steps">
+          <cite>.NET Framework 3.5 deployment errors</cite>
+        </a>
+      </header>
+      <p>
+        When you try installing it without providing a valid image you might encounter one of these errors:
+      </p>
+      <ul>
+        <li>
+          0x800f081f – The source files could not be found.
+          <p>
+            &nbsp;&nbsp;<i>If you don't have an iso.</i>
+          </p>
+        </li>
+        <li>
+          0x800F0906 - The source files could not be downloaded.
+          <p>
+            &nbsp;&nbsp;<i>If your organization uses <abbr title="Windows Server Update Services">WSUS</abbr> to manage updates.</i>
+          </p>
+        </li>
+        <li>
+          0x800F0907 - 	DISM failed. No operation was performed.
+          <p>
+            &nbsp;&nbsp;<i>If group policy blocked the installation.</i>
+          </p>
+        </li>
+      </ul>
+    </section>
+  </section>
+  <section>
+    <header>
+      <h2>The solution</h2>
+    </header>
+    <ol>
+      <li>
+        <section>
+          <header>
+            <h3>Stop any errant installation attempts</h3>
+            <a href="https://www.bit-tech.net/news/tech/software/win8-bug/1/#comments_container" title="Windows 8 update bug clogs CPUs">
+              <cite>Anakha on bit-tech</cite>
+            </a>
+          </header>
+          <p>
+            I had some leftover TiWorker.exe processes pinning my cpu. They may have been up to something but I couldn't tell.
+          </p>
+          &nbsp;&nbsp;<i>Kill then in the task manager</i>
+          <p>
+            I also stopped any WindowsInstaller or TrustedInstaller type processes.
+          </p>
+          <p>
+            Since we killed those things, let's do some clean-up to avoid leaving the system in a weird state.
+            Open up powershell as admin and run the following:
+          </p>
+          &nbsp;&nbsp;<code>DISM /online /cleanup-image /restorehealth</code>
+          <p>
+            You can also run the <a href="https://support.microsoft.com/en-ca/help/4027322/windows-update-troubleshooter" title="Windows Update Troubleshooter">Windows Update Troubleshooter</a>
+          </p>
+        </section>
+      </li>
+      <li>
+        <section>
+          <header>
+            <h3>Configure windows to download updates from the web</h3>
+            <a href="https://serverfault.com/a/545417/42960" title="Unable to install .net 3.5 on Windows server 2012">
+              <cite>Richard on serverfault.com</cite>
+            </a>
+          </header>
+          <p>
+            Your organization might use <abbr title="Windows Server Update Services">WSUS</abbr> to manage updates. Mine does, and I'm not sure why that matters, but the update wasn't working.
+          </p>
+          <ol>
+            <li>
+              Open up the policy editor. Hit the windows key and start typing <i>Edit group policy</i>.
+            </li>
+            <li>
+              Expand to the right spot. <i>Local Computer Policy</i> -> <i>Computer Configuration</i> -> <i>Administrative Templates</i> -> <i>System</i>
+            </li>
+            <li>
+              Select <i>Specify settings for optional component installation and component repair</i>
+            </li>
+            <li>
+              Select <i>Enabled</i>, and click the checkbox <i>Download repair content and optional features directly from Windows Update instead of Windows Server Update Services (WSUS)</i>
+            </li>
+          </ol>
+        </section>
+      </li>
+      <li>
+        <section>
+          <header>
+            <h3>Install .NET 3.5</h3>
+            <a href="https://stackoverflow.com/a/24957556/103959" title="Install Net 3.5 Framework on Windows Server 2012 without DVD">
+              <cite>user3877269 on stackoverflow</cite>
+            </a>
+          </header>
+          <p>
+            From an elevated powershell windows, run the following:
+          </p>
+          &nbsp;&nbsp;<code>DISM /online /enable-feature /featurename:NetFX3 /all</code>
+          <p>
+            Here's an explanation from the source:
+          </p>
+          <blockquote cite="https://stackoverflow.com/a/24957556/103959">
+            The elimination of the source switch is done on purpose as this will force the server to look within its own SxS folder, not find the needed files, and then go to Windows Update for the files.
+          </blockquote>
+        </section>
+      </li>
+      <li>
+        <section>
+          <header>
+            <h3>Don't forget to revert your Group Policy</h3>
+          </header>
+          <p>
+            Go back and undo the changes made in step 2.
+          </p>
+        </section>
+      </li>
+    </ol>
+  </section>
+</article>
+</main>
+
+<aside>
+  <figure>
+    <img src="https://jbp.dev/img/bird-small.jpg" alt="You caught me, I'm not a bird."/>
+    <figcaption>Jean-Bernard Pellerin</figcaption>
+  </figure>
+  <p>
+    Contact:
+    I can be reached <a href="mailto:jbp@jbp.dev">by email</a>.
+  </p>
+</aside>
+
+<footer>
+  <p>
+    <b><a href="https://jbp.dev/licenses.html">© 2019 Jean-Bernard Pellerin</a></b>
+  </p>
+</footer>
+
+</body>
+</html>
